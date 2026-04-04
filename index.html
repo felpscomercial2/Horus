@@ -6,6 +6,7 @@
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <style>
     body {
@@ -105,6 +106,7 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.firestore();
 
     function login() {
       const email = document.getElementById('email').value;
@@ -128,13 +130,17 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(() => {
-          alert("Conta criada com sucesso!");
-        })
-        .catch((error) => {
-          alert("Erro: " + error.message);
-        });
+      db.collection("pedidos").add({
+        email: email,
+        password: password,
+        status: "pendente"
+      })
+      .then(() => {
+        alert("Pedido enviado! Aguarde aprovação.");
+      })
+      .catch((error) => {
+        alert("Erro: " + error.message);
+      });
     }
   </script>
 
