@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Horus</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+
+<body style="margin:0; padding:0; overflow:hidden; font-family:Arial;">
+
+  <!-- TELA DE LOGIN -->
+  <div id="login" style="
+    background:#0b1c2c;
+    color:white;
+    width:100vw;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+  ">
+
+    <h1 style="margin:0;">HORUS</h1>
+    <p style="margin-bottom:20px;">THE ALL-SEEING ONE</p>
+
+    <input id="email" placeholder="Email" style="padding:10px; width:220px;"><br><br>
+    <input id="password" type="password" placeholder="Senha" style="padding:10px; width:220px;"><br><br>
+
+    <button onclick="login()" style="padding:10px 25px; cursor:pointer;">
+      Entrar
+    </button>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDs1wyLdmz4_2DSt8FXSw-apIeEi0kwzZ4",
+      authDomain: "horus-bf93b.firebaseapp.com",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+
+          // TROCA TUDO PELA TELA DO DASHBOARD
+          document.body.innerHTML = `
+            <iframe 
+              src="https://app.fabric.microsoft.com/reportEmbed?reportId=d4af722f-cdb8-4954-95c6-5867748d6ea7&autoAuth=true&ctid=e524f1b1-495d-41da-8e4c-f35459e1e52d"
+              style="
+                position:fixed;
+                top:0;
+                left:0;
+                width:100%;
+                height:100%;
+                border:none;
+              ">
+            </iframe>
+          `;
+
+        })
+        .catch((error) => {
+          alert("Erro no login: " + error.message);
+        });
+    }
+  </script>
+
+</body>
+</html>
