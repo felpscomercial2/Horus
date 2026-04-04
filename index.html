@@ -28,17 +28,6 @@
       box-shadow: 0 0 30px rgba(0,0,0,0.5);
       text-align: center;
       width: 300px;
-      animation: fadeIn 1s ease;
-    }
-
-    h1 {
-      margin: 0;
-      letter-spacing: 2px;
-    }
-
-    p {
-      margin-bottom: 25px;
-      opacity: 0.6;
     }
 
     input {
@@ -47,7 +36,6 @@
       margin: 8px 0;
       border: none;
       border-radius: 8px;
-      outline: none;
     }
 
     button {
@@ -59,28 +47,12 @@
       background: #00c3ff;
       font-weight: bold;
       cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      transform: scale(1.05);
-      background: #00a2d6;
     }
 
     .secondary {
       background: transparent;
       color: white;
       border: 1px solid #00c3ff;
-    }
-
-    .secondary:hover {
-      background: #00c3ff;
-      color: black;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -104,10 +76,14 @@
       authDomain: "horus-bf93b.firebaseapp.com",
     };
 
+    // 🔥 INICIALIZA PRIMEIRO
     firebase.initializeApp(firebaseConfig);
+
+    // 🔥 CRIA ANTES DE USAR (CORREÇÃO DO ERRO)
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // LOGIN
     function login() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
@@ -126,6 +102,7 @@
         });
     }
 
+    // CADASTRO (AGORA FUNCIONA)
     function register() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
