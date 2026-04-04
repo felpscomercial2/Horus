@@ -11,54 +11,59 @@
     body {
       margin: 0;
       font-family: Arial;
-      background: linear-gradient(135deg, #0b1c2c, #123a5a);
+      background: linear-gradient(135deg, #0b1c2c, #07121c);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       color: white;
     }
 
-    .container {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(15px);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      text-align: center;
+      width: 300px;
+      animation: fadeIn 1s ease;
     }
 
     h1 {
-      font-size: 40px;
       margin: 0;
       letter-spacing: 2px;
     }
 
     p {
-      margin-bottom: 30px;
-      opacity: 0.7;
+      margin-bottom: 25px;
+      opacity: 0.6;
     }
 
     input {
+      width: 100%;
       padding: 12px;
-      width: 250px;
-      margin: 5px;
+      margin: 8px 0;
       border: none;
       border-radius: 8px;
       outline: none;
     }
 
     button {
-      padding: 12px 30px;
+      width: 100%;
+      padding: 12px;
       margin-top: 10px;
       border: none;
       border-radius: 8px;
       background: #00c3ff;
-      color: black;
       font-weight: bold;
       cursor: pointer;
       transition: 0.3s;
     }
 
     button:hover {
-      background: #00a2d6;
       transform: scale(1.05);
+      background: #00a2d6;
     }
 
     .secondary {
@@ -71,12 +76,17 @@
       background: #00c3ff;
       color: black;
     }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
+  <div class="card">
     <h1>HORUS</h1>
     <p>THE ALL-SEEING ONE</p>
 
