@@ -31,6 +31,13 @@
     <button onclick="login()" style="padding:10px 25px; cursor:pointer;">
       Entrar
     </button>
+
+    <br><br>
+
+    <button onclick="register()" style="padding:10px 25px; cursor:pointer;">
+      Criar conta
+    </button>
+
   </div>
 
   <script>
@@ -48,8 +55,6 @@
 
       auth.signInWithEmailAndPassword(email, password)
         .then(() => {
-
-          // TROCA TUDO PELA TELA DO DASHBOARD
           document.body.innerHTML = `
             <iframe 
               src="https://app.fabric.microsoft.com/reportEmbed?reportId=d4af722f-cdb8-4954-95c6-5867748d6ea7&autoAuth=true&ctid=e524f1b1-495d-41da-8e4c-f35459e1e52d"
@@ -63,10 +68,22 @@
               ">
             </iframe>
           `;
-
         })
         .catch((error) => {
           alert("Erro no login: " + error.message);
+        });
+    }
+
+    function register() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          alert("Conta criada com sucesso!");
+        })
+        .catch((error) => {
+          alert("Erro: " + error.message);
         });
     }
   </script>
