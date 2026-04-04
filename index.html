@@ -6,38 +6,85 @@
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: linear-gradient(135deg, #0b1c2c, #123a5a);
+      color: white;
+    }
+
+    .container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 40px;
+      margin: 0;
+      letter-spacing: 2px;
+    }
+
+    p {
+      margin-bottom: 30px;
+      opacity: 0.7;
+    }
+
+    input {
+      padding: 12px;
+      width: 250px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    button {
+      padding: 12px 30px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #00c3ff;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #00a2d6;
+      transform: scale(1.05);
+    }
+
+    .secondary {
+      background: transparent;
+      color: white;
+      border: 1px solid #00c3ff;
+    }
+
+    .secondary:hover {
+      background: #00c3ff;
+      color: black;
+    }
+  </style>
 </head>
 
-<body style="margin:0; padding:0; overflow:hidden; font-family:Arial;">
+<body>
 
-  <!-- TELA DE LOGIN -->
-  <div id="login" style="
-    background:#0b1c2c;
-    color:white;
-    width:100vw;
-    height:100vh;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-  ">
+  <div class="container">
+    <h1>HORUS</h1>
+    <p>THE ALL-SEEING ONE</p>
 
-    <h1 style="margin:0;">HORUS</h1>
-    <p style="margin-bottom:20px;">THE ALL-SEEING ONE</p>
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Senha">
 
-    <input id="email" placeholder="Email" style="padding:10px; width:220px;"><br><br>
-    <input id="password" type="password" placeholder="Senha" style="padding:10px; width:220px;"><br><br>
-
-    <button onclick="login()" style="padding:10px 25px; cursor:pointer;">
-      Entrar
-    </button>
-
-    <br><br>
-
-    <button onclick="register()" style="padding:10px 25px; cursor:pointer;">
-      Criar conta
-    </button>
-
+    <button onclick="login()">Entrar</button>
+    <button class="secondary" onclick="register()">Criar conta</button>
   </div>
 
   <script>
@@ -58,14 +105,7 @@
           document.body.innerHTML = `
             <iframe 
               src="https://app.fabric.microsoft.com/reportEmbed?reportId=d4af722f-cdb8-4954-95c6-5867748d6ea7&autoAuth=true&ctid=e524f1b1-495d-41da-8e4c-f35459e1e52d"
-              style="
-                position:fixed;
-                top:0;
-                left:0;
-                width:100%;
-                height:100%;
-                border:none;
-              ">
+              style="position:fixed; top:0; left:0; width:100%; height:100%; border:none;">
             </iframe>
           `;
         })
