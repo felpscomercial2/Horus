@@ -3,7 +3,7 @@
 <head>
   <title>Horus</title>
 
-  <!-- Firebase -->
+  <!-- Firebase (VERSÃO CORRETA) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -26,6 +26,7 @@
       border-radius: 16px;
       text-align: center;
       width: 300px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
     }
 
     input {
@@ -44,6 +45,7 @@
       border: none;
       background: #00c3ff;
       cursor: pointer;
+      font-weight: bold;
     }
 
     .secondary {
@@ -68,21 +70,23 @@
 </div>
 
 <script>
-  let auth;
-  let db;
-
-  // 🔥 Inicializa Firebase
+  // 🔥 CONFIG COMPLETA (CORRETO)
   const firebaseConfig = {
     apiKey: "AIzaSyDs1wyLdmz4_2DSt8FXSw-apIeEi0kwzZ4",
     authDomain: "horus-bf93b.firebaseapp.com",
+    projectId: "horus-bf93b",
+    storageBucket: "horus-bf93b.firebasestorage.app",
+    messagingSenderId: "587109575045",
+    appId: "1:587109575045:web:0fc32f109aa24399e07cec"
   };
 
+  // 🔥 INICIALIZA
   firebase.initializeApp(firebaseConfig);
 
-  auth = firebase.auth();
-  db = firebase.firestore();
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-  // 🔥 Só conecta os botões depois de tudo pronto
+  // LOGIN
   document.getElementById("loginBtn").onclick = function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -101,6 +105,7 @@
       });
   };
 
+  // CRIAR CONTA (SALVA NO FIREBASE)
   document.getElementById("registerBtn").onclick = function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
