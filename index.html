@@ -25,7 +25,6 @@
       backdrop-filter: blur(15px);
       padding: 40px;
       border-radius: 16px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.5);
       text-align: center;
       width: 300px;
     }
@@ -34,92 +33,93 @@
       width: 100%;
       padding: 12px;
       margin: 8px 0;
-      border: none;
       border-radius: 8px;
+      border: none;
     }
 
     button {
       width: 100%;
       padding: 12px;
       margin-top: 10px;
-      border: none;
       border-radius: 8px;
+      border: none;
       background: #00c3ff;
-      font-weight: bold;
       cursor: pointer;
     }
 
     .secondary {
       background: transparent;
-      color: white;
       border: 1px solid #00c3ff;
+      color: white;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="card">
-    <h1>HORUS</h1>
-    <p>THE ALL-SEEING ONE</p>
+<div class="card">
+  <h1>HORUS</h1>
+  <p>THE ALL-SEEING ONE</p>
 
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Senha">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Senha">
 
-    <button onclick="login()">Entrar</button>
-    <button class="secondary" onclick="register()">Criar conta</button>
-  </div>
+  <button onclick="login()">Entrar</button>
+  <button class="secondary" onclick="register()">Criar conta</button>
+</div>
 
-  <script>
+<script>
+  let auth;
+  let db;
+
+  window.onload = function() {
+
     const firebaseConfig = {
       apiKey: "AIzaSyDs1wyLdmz4_2DSt8FXSw-apIeEi0kwzZ4",
       authDomain: "horus-bf93b.firebaseapp.com",
     };
 
-    // 🔥 INICIALIZA PRIMEIRO
     firebase.initializeApp(firebaseConfig);
 
-    // 🔥 CRIA ANTES DE USAR (CORREÇÃO DO ERRO)
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    auth = firebase.auth();
+    db = firebase.firestore();
+  };
 
-    // LOGIN
-    function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+  function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-          document.body.innerHTML = `
-            <iframe 
-              src="https://app.fabric.microsoft.com/reportEmbed?reportId=d4af722f-cdb8-4954-95c6-5867748d6ea7&autoAuth=true&ctid=e524f1b1-495d-41da-8e4c-f35459e1e52d"
-              style="position:fixed; top:0; left:0; width:100%; height:100%; border:none;">
-            </iframe>
-          `;
-        })
-        .catch((error) => {
-          alert("Erro no login: " + error.message);
-        });
-    }
-
-    // CADASTRO (AGORA FUNCIONA)
-    function register() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-
-      db.collection("pedidos").add({
-        email: email,
-        password: password,
-        status: "pendente"
-      })
+    auth.signInWithEmailAndPassword(email, password)
       .then(() => {
-        alert("Pedido enviado! Aguarde aprovação.");
+        document.body.innerHTML = `
+          <iframe 
+            src="https://app.fabric.microsoft.com/reportEmbed?reportId=d4af722f-cdb8-4954-95c6-5867748d6ea7&autoAuth=true&ctid=e524f1b1-495d-41da-8e4c-f35459e1e52d"
+            style="position:fixed; top:0; left:0; width:100%; height:100%; border:none;">
+          </iframe>
+        `;
       })
       .catch((error) => {
-        alert("Erro: " + error.message);
+        alert("Erro no login: " + error.message);
       });
-    }
-  </script>
+  }
+
+  function register() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    db.collection("pedidos").add({
+      email: email,
+      password: password,
+      status: "pendente"
+    })
+    .then(() => {
+      alert("Pedido enviado! Aguarde aprovação.");
+    })
+    .catch((error) => {
+      alert("Erro: " + error.message);
+    });
+  }
+</script>
 
 </body>
 </html>
