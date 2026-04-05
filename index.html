@@ -21,8 +21,7 @@
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(15px);
+      background: rgba(255,255,255,0.05);
       padding: 40px;
       border-radius: 16px;
       text-align: center;
@@ -64,28 +63,27 @@
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Senha">
 
-  <button onclick="login()">Entrar</button>
-  <button class="secondary" onclick="register()">Criar conta</button>
+  <button id="loginBtn">Entrar</button>
+  <button id="registerBtn" class="secondary">Criar conta</button>
 </div>
 
 <script>
   let auth;
   let db;
 
-  window.onload = function() {
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDs1wyLdmz4_2DSt8FXSw-apIeEi0kwzZ4",
-      authDomain: "horus-bf93b.firebaseapp.com",
-    };
-
-    firebase.initializeApp(firebaseConfig);
-
-    auth = firebase.auth();
-    db = firebase.firestore();
+  // 🔥 Inicializa Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyDs1wyLdmz4_2DSt8FXSw-apIeEi0kwzZ4",
+    authDomain: "horus-bf93b.firebaseapp.com",
   };
 
-  function login() {
+  firebase.initializeApp(firebaseConfig);
+
+  auth = firebase.auth();
+  db = firebase.firestore();
+
+  // 🔥 Só conecta os botões depois de tudo pronto
+  document.getElementById("loginBtn").onclick = function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
@@ -101,9 +99,9 @@
       .catch((error) => {
         alert("Erro no login: " + error.message);
       });
-  }
+  };
 
-  function register() {
+  document.getElementById("registerBtn").onclick = function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
@@ -118,7 +116,7 @@
     .catch((error) => {
       alert("Erro: " + error.message);
     });
-  }
+  };
 </script>
 
 </body>
