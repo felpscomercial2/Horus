@@ -1,223 +1,225 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <title>Horus</title>
+<meta charset="UTF-8">
+<title>Horus Dashboard Empresa Nível Máximo</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: linear-gradient(135deg, #0b1c2c, #07121c);
-      height: 100vh;
-      color: white;
-    }
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    .login {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Arial;transition:background 0.3s,color 0.3s;}
+  body.dark{background:#07121c;color:#fff;}
+  body.light{background:#f4f4f4;color:#000;}
 
-    .card {
-      background: rgba(255,255,255,0.05);
-      padding: 40px;
-      border-radius: 16px;
-      text-align: center;
-      width: 300px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.5);
-    }
+  /* Login */
+  .login{display:flex;justify-content:center;align-items:center;height:100vh;}
+  .card{background:rgba(0,0,0,0.6);padding:40px;border-radius:16px;width:300px;text-align:center;transition:all 0.3s;}
+  .card input{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:none;}
+  .card button{width:100%;padding:12px;margin-top:10px;border-radius:8px;border:none;cursor:pointer;font-weight:bold;transition:all 0.2s;}
+  .card button:hover{opacity:0.9;}
+  .secondary{background:transparent;border:1px solid #00c3ff;color:white;}
 
-    input {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 8px;
-      border: none;
-    }
+  /* Admin */
+  .sidebar{width:250px;background:#0b1c2c;position:fixed;top:0;left:0;height:100vh;padding:20px;display:flex;flex-direction:column;justify-content:flex-start;transition:all 0.3s;}
+  .sidebar h2{text-align:center;margin-bottom:20px;}
+  .sidebar button{margin:5px 0;background:#00c3ff;color:#000;border:none;padding:10px;border-radius:8px;cursor:pointer;transition:all 0.2s;}
+  .toggle-dark{margin-top:20px;background:#ffaa00;color:#000;}
+  .main{margin-left:270px;padding:30px;transition:all 0.3s;}
+  .user-card{background:#111;padding:15px;margin:10px 0;border-radius:10px;display:flex;justify-content:space-between;align-items:center;transition:all 0.3s;}
+  .user-card p{margin:0;}
+  .status-aprovado{color:#00ff88;}
+  .status-pendente{color:#ffaa00;}
+  .search-input{width:100%;padding:10px;margin-bottom:20px;border-radius:8px;border:none;}
 
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 8px;
-      border: none;
-      background: #00c3ff;
-      cursor: pointer;
-      font-weight: bold;
-    }
+  /* Contadores */
+  .counters{display:flex;gap:20px;margin-bottom:20px;}
+  .counter{flex:1;background:#222;padding:15px;border-radius:10px;text-align:center;transition:all 0.3s;}
+  .counter h3{margin:0;font-size:24px;}
+  .counter p{margin:5px 0 0;}
 
-    .secondary {
-      background: transparent;
-      border: 1px solid #00c3ff;
-      color: white;
-    }
-  </style>
+  /* Toast notification */
+  #toast{
+    position:fixed;bottom:20px;right:20px;padding:15px 25px;background:#00c3ff;color:#000;border-radius:8px;opacity:0;
+    transform:translateY(50px);transition:all 0.5s;z-index:9999;
+  }
+  #toast.show{opacity:1;transform:translateY(0);}
+</style>
 </head>
+<body class="dark">
 
-<body>
-
-<div class="login">
+<div class="login" id="loginScreen">
   <div class="card">
     <h1>HORUS</h1>
     <p>THE ALL-SEEING ONE</p>
-
     <input id="email" placeholder="Email">
     <input id="password" type="password" placeholder="Senha">
-
     <button id="loginBtn">Entrar</button>
     <button id="registerBtn" class="secondary">Criar conta</button>
-    <button onclick="adminLogin()">Admin</button>
+    <button id="adminBtn">Admin</button>
   </div>
 </div>
 
+<div id="toast"></div>
+
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDs1wyLdmz4_2DSt8FXSw-apIeEi0kwzZ4",
-    authDomain: "horus-bf93b.firebaseapp.com",
-    projectId: "horus-bf93b",
-    storageBucket: "horus-bf93b.firebasestorage.app",
-    messagingSenderId: "587109575045",
-    appId: "1:587109575045:web:0fc32f109aa24399e07cec"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyDs1wyLdmz4_2DSt8FXSw-apIeEi0kwzZ4",
+  authDomain: "horus-bf93b.firebaseapp.com",
+  projectId: "horus-bf93b",
+  storageBucket: "horus-bf93b.firebasestorage.app",
+  messagingSenderId: "587109575045",
+  appId: "1:587109575045:web:0fc32f109aa24399e07cec"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-  firebase.initializeApp(firebaseConfig);
+// --- LOGIN NORMAL ---
+document.getElementById("loginBtn").onclick = function(){
+  const email=document.getElementById('email').value;
+  const password=document.getElementById('password').value;
+  auth.signInWithEmailAndPassword(email,password)
+    .then(()=>document.body.innerHTML=`<iframe src="https://app.fabric.microsoft.com/reportEmbed?reportId=d4af722f-cdb8-4954-95c6-5867748d6ea7&autoAuth=true&ctid=e524f1b1-495d-41da-8e4c-f35459e1e52d" style="position:fixed; top:0; left:0; width:100%; height:100%; border:none;"></iframe>`)
+    .catch(err=>showToast("Erro no login: "+err.message));
+};
 
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+// --- CRIAR CONTA ---
+document.getElementById("registerBtn").onclick=function(){
+  const email=document.getElementById('email').value;
+  const password=document.getElementById('password').value;
+  db.collection("pedidos").add({email,password,status:"pendente"})
+    .then(()=>showToast("✅ Pedido enviado! Aguarde aprovação."))
+    .catch(err=>showToast("Erro: "+err.message));
+};
 
-  // LOGIN
-  document.getElementById("loginBtn").onclick = function() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+// --- LOGIN ADMIN ---
+document.getElementById("adminBtn").onclick=function(){
+  document.getElementById("loginScreen").innerHTML=`
+    <div class="card">
+      <h1>Admin Login</h1>
+      <input id="adminEmail" placeholder="Email Admin">
+      <input id="adminPassword" type="password" placeholder="Senha Admin">
+      <button id="adminLoginBtn">Entrar</button>
+    </div>
+  `;
+  document.getElementById("adminLoginBtn").onclick=adminLoginSecure;
+};
 
-    auth.signInWithEmailAndPassword(email, password)
-      .then(() => {
-        document.body.innerHTML = `
-          <iframe 
-            src="https://app.fabric.microsoft.com/reportEmbed?reportId=d4af722f-cdb8-4954-95c6-5867748d6ea7&autoAuth=true&ctid=e524f1b1-495d-41da-8e4c-f35459e1e52d"
-            style="position:fixed; top:0; left:0; width:100%; height:100%; border:none;">
-          </iframe>
-        `;
-      })
-      .catch((error) => {
-        alert("Erro no login: " + error.message);
-      });
-  };
+function adminLoginSecure(){
+  const email=document.getElementById('adminEmail').value;
+  const password=document.getElementById('adminPassword').value;
+  if(email==="admin@horus.com" && password==="Admin123!") abrirPainel();
+  else showToast("❌ Credenciais incorretas!");
+}
 
-  // CRIAR CONTA
-  document.getElementById("registerBtn").onclick = function() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+// --- DASHBOARD ---
+function abrirPainel(){
+  document.body.innerHTML=`
+    <div class="sidebar">
+      <h2>HORUS ADMIN</h2>
+      <input type="text" id="search" class="search-input" placeholder="Buscar usuário...">
+      <button onclick="logout()">Sair</button>
+      <button class="toggle-dark" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+      <canvas id="chart" style="margin-top:20px;"></canvas>
+    </div>
+    <div class="main" id="mainContent">
+      <div class="counters">
+        <div class="counter" id="totalUsers"><h3>0</h3><p>Total</p></div>
+        <div class="counter" id="approvedUsers"><h3>0</h3><p>Aprovados</p></div>
+        <div class="counter" id="pendingUsers"><h3>0</h3><p>Pendentes</p></div>
+      </div>
+      <div id="usersList"></div>
+    </div>
+  `;
+  document.getElementById('search').addEventListener('input', loadUsers);
+  db.collection("pedidos").onSnapshot(()=>{ loadUsers(); updateChart(); });
+  loadUsers();
+  updateChart();
+}
 
-    db.collection("pedidos").add({
-      email: email,
-      password: password,
-      status: "pendente"
-    })
-    .then(() => {
-      alert("Pedido enviado! Aguarde aprovação.");
-    })
-    .catch((error) => {
-      alert("Erro: " + error.message);
-    });
-  };
+// --- LOAD USERS ---
+function loadUsers(){
+  const searchTerm=document.getElementById('search').value.toLowerCase();
+  const usersList=document.getElementById('usersList');
+  usersList.innerHTML="";
+  let total=0, aprovados=0, pendentes=0;
 
-  // ADMIN LOGIN
-  function adminLogin() {
-    const senha = prompt("Digite a senha de admin:");
+  db.collection("pedidos").get().then(snapshot=>{
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      if(!data.email.toLowerCase().includes(searchTerm)) return;
+      total++;
+      data.status==="aprovado"?aprovados++:pendentes++;
+      const statusClass=data.status==="aprovado"?"status-aprovado":"status-pendente";
 
-    if (senha === "Alimentare@3020") {
-      abrirPainel();
-    } else {
-      alert("Senha errada");
-    }
-  }
-
-  // PAINEL BONITO
-  function abrirPainel() {
-    db.collection("pedidos").get().then((snapshot) => {
-
-      let html = `
-        <div style="
-          background:#0b1c2c;
-          min-height:100vh;
-          padding:30px;
-          color:white;
-          font-family:Arial;
-        ">
-        
-        <h1 style="text-align:center;">Painel Horus 👁️</h1>
-
-        <div style="
-          max-width:800px;
-          margin:auto;
-        ">
+      const div=document.createElement('div');
+      div.className="user-card";
+      div.innerHTML=`
+        <div><p><strong>${data.email}</strong></p><p class="${statusClass}">Status: ${data.status}</p></div>
+        <div>
+          ${data.status==="pendente"?`<button onclick="aprovar('${doc.id}','${data.email}','${data.password}')">Aprovar</button>`:""}
+          <button onclick="excluir('${doc.id}')">Excluir</button>
+        </div>
       `;
-
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-
-        let cor = data.status === "aprovado" ? "#00ff88" : "#ffaa00";
-
-        html += `
-          <div style="
-            background:#111;
-            padding:15px;
-            margin:10px 0;
-            border-radius:10px;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-          ">
-            <div>
-              <p><strong>${data.email}</strong></p>
-              <p style="color:${cor};">Status: ${data.status}</p>
-            </div>
-
-            <button onclick="aprovar('${doc.id}', '${data.email}', '${data.password}')"
-              style="
-                background:#00c3ff;
-                border:none;
-                padding:10px;
-                border-radius:8px;
-                cursor:pointer;
-              ">
-              Aprovar
-            </button>
-          </div>
-        `;
-      });
-
-      html += `</div></div>`;
-
-      document.body.innerHTML = html;
+      usersList.appendChild(div);
     });
+
+    // Atualiza contadores
+    document.getElementById('totalUsers').querySelector('h3').innerText=total;
+    document.getElementById('approvedUsers').querySelector('h3').innerText=aprovados;
+    document.getElementById('pendingUsers').querySelector('h3').innerText=pendentes;
+  });
+}
+
+// --- APROVAR ---
+function aprovar(id,email,password){
+  auth.createUserWithEmailAndPassword(email,password)
+    .then(()=>db.collection("pedidos").doc(id).update({status:"aprovado"}))
+    .then(()=>showToast(`✅ ${email} aprovado!`))
+    .catch(err=>showToast("Erro: "+err.message));
+}
+
+// --- EXCLUIR ---
+function excluir(id){
+  if(confirm("Deseja realmente excluir este usuário?")){
+    db.collection("pedidos").doc(id).delete().then(()=>showToast("Usuário excluído!"));
   }
+}
 
-  // APROVAR USUÁRIO
-  function aprovar(id, email, password) {
-    auth.createUserWithEmailAndPassword(email, password)
-      .then(() => {
+// --- LOGOUT ---
+function logout(){ location.reload(); }
 
-        db.collection("pedidos").doc(id).update({
-          status: "aprovado"
-        });
+// --- DARK MODE ---
+function toggleDarkMode(){ document.body.classList.toggle('dark'); document.body.classList.toggle('light'); }
 
-        alert("Usuário aprovado!");
-        abrirPainel();
+// --- TOAST ---
+function showToast(msg){
+  const toast=document.getElementById('toast');
+  toast.innerText=msg; toast.className='show';
+  setTimeout(()=>{toast.className='';},3000);
+}
 
-      })
-      .catch((error) => {
-        alert(error.message);
-      });
-  }
+// --- CHART ---
+function updateChart(){
+  db.collection("pedidos").get().then(snapshot=>{
+    let aprovados=0, pendentes=0;
+    snapshot.forEach(doc=>doc.data().status==="aprovado"?aprovados++:pendentes++);
+    const ctx=document.getElementById('chart').getContext('2d');
+    if(window.myChart) window.myChart.destroy();
+    window.myChart=new Chart(ctx,{
+      type:'doughnut',
+      data:{labels:['Aprovados','Pendentes'],datasets:[{data:[aprovados,pendentes],backgroundColor:['#00ff88','#ffaa00']}]},
+      options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+    });
+  });
+}
 </script>
-
 </body>
 </html>
