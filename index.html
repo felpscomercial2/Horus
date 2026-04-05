@@ -3,7 +3,7 @@
 <head>
   <title>Horus</title>
 
-  <!-- Firebase (VERSÃO CORRETA) -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -67,10 +67,10 @@
 
   <button id="loginBtn">Entrar</button>
   <button id="registerBtn" class="secondary">Criar conta</button>
+  <button onclick="adminLogin()">Admin</button>
 </div>
 
 <script>
-  // 🔥 CONFIG COMPLETA (CORRETO)
   const firebaseConfig = {
     apiKey: "AIzaSyDs1wyLdmz4_2DSt8FXSw-apIeEi0kwzZ4",
     authDomain: "horus-bf93b.firebaseapp.com",
@@ -80,7 +80,6 @@
     appId: "1:587109575045:web:0fc32f109aa24399e07cec"
   };
 
-  // 🔥 INICIALIZA
   firebase.initializeApp(firebaseConfig);
 
   const auth = firebase.auth();
@@ -105,7 +104,7 @@
       });
   };
 
-  // CRIAR CONTA (SALVA NO FIREBASE)
+  // CRIAR CONTA (VAI PARA APROVAÇÃO)
   document.getElementById("registerBtn").onclick = function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -122,6 +121,58 @@
       alert("Erro: " + error.message);
     });
   };
+
+  // LOGIN ADMIN
+  function adminLogin() {
+    const senha = prompt("Digite a senha de admin:");
+
+    if (senha === "1234") {
+      abrirPainel();
+    } else {
+      alert("Senha errada");
+    }
+  }
+
+  // PAINEL ADMIN
+  function abrirPainel() {
+    db.collection("pedidos").get().then((snapshot) => {
+      let html = "<h1 style='color:white; text-align:center;'>Painel Admin</h1>";
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+
+        html += `
+          <div style="background:#111; padding:15px; margin:10px; border-radius:10px;">
+            <p>Email: ${data.email}</p>
+            <p>Status: ${data.status}</p>
+            <button onclick="aprovar('${doc.id}', '${data.email}', '${data.password}')">
+              Aprovar
+            </button>
+          </div>
+        `;
+      });
+
+      document.body.innerHTML = html;
+    });
+  }
+
+  // APROVAR USUÁRIO
+  function aprovar(id, email, password) {
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(() => {
+
+        db.collection("pedidos").doc(id).update({
+          status: "aprovado"
+        });
+
+        alert("Usuário aprovado!");
+        abrirPainel();
+
+      })
+      .catch((error) => {
+        alert(error.message);
+      });
+  }
 </script>
 
 </body>
