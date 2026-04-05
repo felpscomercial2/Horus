@@ -14,10 +14,14 @@
       font-family: Arial;
       background: linear-gradient(135deg, #0b1c2c, #07121c);
       height: 100vh;
+      color: white;
+    }
+
+    .login {
       display: flex;
       justify-content: center;
       align-items: center;
-      color: white;
+      height: 100vh;
     }
 
     .card {
@@ -58,16 +62,18 @@
 
 <body>
 
-<div class="card">
-  <h1>HORUS</h1>
-  <p>THE ALL-SEEING ONE</p>
+<div class="login">
+  <div class="card">
+    <h1>HORUS</h1>
+    <p>THE ALL-SEEING ONE</p>
 
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Senha">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Senha">
 
-  <button id="loginBtn">Entrar</button>
-  <button id="registerBtn" class="secondary">Criar conta</button>
-  <button onclick="adminLogin()">Admin</button>
+    <button id="loginBtn">Entrar</button>
+    <button id="registerBtn" class="secondary">Criar conta</button>
+    <button onclick="adminLogin()">Admin</button>
+  </div>
 </div>
 
 <script>
@@ -104,7 +110,7 @@
       });
   };
 
-  // CRIAR CONTA (VAI PARA APROVAÇÃO)
+  // CRIAR CONTA
   document.getElementById("registerBtn").onclick = function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -122,7 +128,7 @@
     });
   };
 
-  // LOGIN ADMIN
+  // ADMIN LOGIN
   function adminLogin() {
     const senha = prompt("Digite a senha de admin:");
 
@@ -133,24 +139,62 @@
     }
   }
 
-  // PAINEL ADMIN
+  // PAINEL BONITO
   function abrirPainel() {
     db.collection("pedidos").get().then((snapshot) => {
-      let html = "<h1 style='color:white; text-align:center;'>Painel Admin</h1>";
+
+      let html = `
+        <div style="
+          background:#0b1c2c;
+          min-height:100vh;
+          padding:30px;
+          color:white;
+          font-family:Arial;
+        ">
+        
+        <h1 style="text-align:center;">Painel Horus 👁️</h1>
+
+        <div style="
+          max-width:800px;
+          margin:auto;
+        ">
+      `;
 
       snapshot.forEach((doc) => {
         const data = doc.data();
 
+        let cor = data.status === "aprovado" ? "#00ff88" : "#ffaa00";
+
         html += `
-          <div style="background:#111; padding:15px; margin:10px; border-radius:10px;">
-            <p>Email: ${data.email}</p>
-            <p>Status: ${data.status}</p>
-            <button onclick="aprovar('${doc.id}', '${data.email}', '${data.password}')">
+          <div style="
+            background:#111;
+            padding:15px;
+            margin:10px 0;
+            border-radius:10px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+          ">
+            <div>
+              <p><strong>${data.email}</strong></p>
+              <p style="color:${cor};">Status: ${data.status}</p>
+            </div>
+
+            <button onclick="aprovar('${doc.id}', '${data.email}', '${data.password}')"
+              style="
+                background:#00c3ff;
+                border:none;
+                padding:10px;
+                border-radius:8px;
+                cursor:pointer;
+              ">
               Aprovar
             </button>
           </div>
         `;
       });
+
+      html += `</div></div>`;
 
       document.body.innerHTML = html;
     });
