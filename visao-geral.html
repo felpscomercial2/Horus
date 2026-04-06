@@ -276,8 +276,8 @@ async function carregarKPIs(params) {
   const res = await fetch(`${API}/api/kpis?${params}`);
   const d   = await res.json();
 
-  const fat = d.faturamento || 0;
-  const dev = d.devolucoes  || 0;
+  const fat = parseFloat(d.faturamento) || 0;
+  const dev = parseFloat(d.devolucoes)  || 0;
   const liq = fat + dev; // dev já é negativo
 
   document.getElementById('kpiFat').textContent    = brl(fat);
@@ -297,7 +297,9 @@ async function carregarKPIs(params) {
 // ============================================================
 async function carregarMensal(params) {
   const res  = await fetch(`${API}/api/faturamento-mensal?${params}`);
-  const data = await res.json();
+  const dataRaw = await res.json();
+  // Filtra meses inválidos (mes=0 ou null)
+  const data = dataRaw.filter(d => d.mes >= 1 && d.mes <= 12);
 
   document.getElementById('lblMensal').textContent = `(${data.length} meses)`;
 
