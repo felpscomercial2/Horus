@@ -171,7 +171,7 @@ def faturamento_mensal():
             ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Devolução'   THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS devolucoes,
             ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Bonificação' THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS bonificacoes
         FROM faturamento {where}
-        WHERE mes > 0
+        {'AND' if where else 'WHERE'} mes > 0
         GROUP BY ano, mes ORDER BY ano, mes
     """, params)
     cache_set(key, resultado)
