@@ -7,11 +7,8 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# ============================================================
-#  CONEXÃO COM SUPABASE
-# ============================================================
 def get_conn():
-    db_url = os.environ.get('DATABASE_URL')
+    db_url = os.environ.get('DATABASE_URL', '')
     return psycopg2.connect(db_url, sslmode='require')
 
 def consultar(sql, params=()):
@@ -23,59 +20,54 @@ def consultar(sql, params=()):
     conn.close()
     return [dict(row) for row in resultado]
 
-# ============================================================
-#  MONTA FILTROS DINÂMICOS
-# ============================================================
 def montar_filtros(args):
     condicoes = []
     params    = []
-
     anos = args.getlist('ano')
     if anos:
         placeholders = ','.join(['%s'] * len(anos))
         condicoes.append(f"ano IN ({placeholders})")
         params.extend([int(a) for a in anos])
-
     meses = args.getlist('mes')
     if meses:
         placeholders = ','.join(['%s'] * len(meses))
         condicoes.append(f"mes IN ({placeholders})")
         params.extend([int(m) for m in meses])
-
     unidade = args.get('unidade')
     if unidade:
         condicoes.append("unidade = %s")
         params.append(unidade)
-
     uf = args.get('uf')
     if uf:
         condicoes.append("uf = %s")
         params.append(uf)
-
     tipo = args.get('tipo')
     if tipo:
         condicoes.append("tipo_operacao = %s")
         params.append(tipo)
-
     marca = args.get('marca')
     if marca:
         condicoes.append("marca = %s")
         params.append(marca)
-
     vendedor = args.get('vendedor')
     if vendedor:
         condicoes.append("vendedor = %s")
         params.append(vendedor)
-
     where = ("WHERE " + " AND ".join(condicoes)) if condicoes else ""
     return where, params
 
-# ============================================================
-#  ROTAS
-# ============================================================
 @app.route('/')
 def home():
     return jsonify({"status": "online", "mensagem": "API Horus funcionando!"})
+
+# Rota de debug — mostra a URL sem a senha
+@app.route('/debug')
+def debug():
+    db_url = os.environ.get('DATABASE_URL', 'NAO ENCONTRADA')
+    # Esconde a senha mas mostra o resto
+    import re
+    url_safe = re.sub(r':([^@]+)@', ':****@', db_url)
+    return jsonify({"DATABASE_URL": url_safe})
 
 @app.route('/api/filtros')
 def filtros():
