@@ -7,9 +7,18 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+# ============================================================
+#  CONEXÃO COM SUPABASE
+# ============================================================
 def get_conn():
-    db_url = os.environ.get('DATABASE_URL', '')
-    return psycopg2.connect(db_url, sslmode='require')
+    return psycopg2.connect(
+        host     = os.environ.get('DB_HOST'),
+        port     = int(os.environ.get('DB_PORT', 6543)),
+        database = os.environ.get('DB_NAME', 'postgres'),
+        user     = os.environ.get('DB_USER'),
+        password = os.environ.get('DB_PASS'),
+        sslmode  = 'require'
+    )
 
 def consultar(sql, params=()):
     conn   = get_conn()
@@ -60,14 +69,15 @@ def montar_filtros(args):
 def home():
     return jsonify({"status": "online", "mensagem": "API Horus funcionando!"})
 
-# Rota de debug — mostra a URL sem a senha
 @app.route('/debug')
 def debug():
-    db_url = os.environ.get('DATABASE_URL', 'NAO ENCONTRADA')
-    # Esconde a senha mas mostra o resto
-    import re
-    url_safe = re.sub(r':([^@]+)@', ':****@', db_url)
-    return jsonify({"DATABASE_URL": url_safe})
+    return jsonify({
+        "DB_HOST": os.environ.get('DB_HOST', 'NAO ENCONTRADO'),
+        "DB_PORT": os.environ.get('DB_PORT', 'NAO ENCONTRADO'),
+        "DB_NAME": os.environ.get('DB_NAME', 'NAO ENCONTRADO'),
+        "DB_USER": os.environ.get('DB_USER', 'NAO ENCONTRADO'),
+        "DB_PASS": "****" if os.environ.get('DB_PASS') else 'NAO ENCONTRADO',
+    })
 
 @app.route('/api/filtros')
 def filtros():
