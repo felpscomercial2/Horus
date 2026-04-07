@@ -270,8 +270,15 @@ function mostrarTags(filtros) {
 // ============================================================
 //  UTILITÁRIOS
 // ============================================================
-function brl(v) {
-  return new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
+function brl(v, compacto=false) {
+  const n = parseFloat(v) || 0;
+  if (compacto && Math.abs(n) >= 1e6) {
+    return 'R$ ' + (n / 1e6).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + 'M';
+  }
+  if (compacto && Math.abs(n) >= 1e3) {
+    return 'R$ ' + (n / 1e3).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + 'K';
+  }
+  return new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(n);
 }
 function num(v) {
   return new Intl.NumberFormat('pt-BR').format(v || 0);
@@ -292,12 +299,12 @@ async function carregarKPIs(params) {
   const dev = parseFloat(d.devolucoes)  || 0;
   const liq = fat + dev; // dev já é negativo
 
-  document.getElementById('kpiFat').textContent    = brl(fat);
-  document.getElementById('kpiDev').textContent    = brl(Math.abs(dev));
+  document.getElementById('kpiFat').textContent    = brl(fat, true);
+  document.getElementById('kpiDev').textContent    = brl(Math.abs(dev), true);
   document.getElementById('kpiDevPct').textContent = pct(dev, fat) + ' do faturamento';
-  document.getElementById('kpiLiq').textContent    = brl(liq);
+  document.getElementById('kpiLiq').textContent    = brl(liq, true);
   document.getElementById('kpiCli').textContent    = num(d.total_clientes);
-  document.getElementById('kpiTkt').textContent    = brl(d.ticket_medio);
+  document.getElementById('kpiTkt').textContent    = brl(d.ticket_medio, false);
   document.getElementById('kpiVendas').textContent = num(d.qtd_vendas);
 
   document.getElementById('subtitulo').textContent =
@@ -362,28 +369,40 @@ async function carregarMensal(params) {
 //  GRÁFICO UNIDADE — faturamento líquido (vendas + devoluções)
 // ============================================================
 async function carregarUnidade(params) {
-  const res  = await fetch(`${API}/api/faturamento-por-unidade?${params}`);
-  const data = await res.json();
+  try {
+    const res  = await fetch(`${API}/api/faturamento-por-unidade?${params}`);
+    const data = await res.json();
 
-  // Faturamento líquido = vendas + devoluções (sem bonificações)
-  const labels = data.map(d => d.unidade);
-  const valores = data.map(d => (d.faturamento || 0) + (d.devolucoes || 0));
+    if (!data || !data.length) return;
 
-  if (cUnidade) cUnidade.destroy();
-  cUnidade = new Chart(document.getElementById('chartUnidade'), {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{ data: valores, backgroundColor:['#015FB8','#00c3ff','#00ff88','#ffaa00','#ff4d4d'], borderWidth:0 }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position:'bottom', labels:{ color:'#a0aec0', font:{size:11}, padding:12 } },
-        tooltip: { callbacks: { label: c => ` ${c.label}: ${brl(c.raw)}` } }
+    // Faturamento líquido = vendas + devoluções (sem bonificações)
+    const labels = data.map(d => d.unidade);
+    const valores = data.map(d => Math.max(0, (parseFloat(d.faturamento) || 0) + (parseFloat(d.devolucoes) || 0)));
+
+    const ctx = document.getElementById('chartUnidade');
+    if (!ctx) return;
+
+    if (cUnidade) cUnidade.destroy();
+    cUnidade = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{ 
+          data: valores, 
+          backgroundColor:['#015FB8','#00c3ff','#00ff88','#ffaa00','#ff4d4d','#a78bfa','#34d399','#fb923c','#f43f5e','#06b6d4'], 
+          borderWidth:0 
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { position:'bottom', labels:{ color:'#a0aec0', font:{size:10}, padding:8, boxWidth:12 } },
+          tooltip: { callbacks: { label: c => ` ${c.label}: ${brl(c.raw, true)}` } }
+        }
       }
-    }
-  });
+    });
+  } catch(e) { console.error('Erro unidade:', e); }
 }
 
 // ============================================================
