@@ -175,6 +175,18 @@ tr:hover td { background:rgba(255,255,255,0.02); }
       <div class="kpi-value" id="kpiVendas">...</div>
       <div class="kpi-sub">Pedidos no período</div>
     </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-label">Clientes em Carteira</div>
+      <div class="kpi-value" id="kpiCarteira">...</div>
+      <div class="kpi-sub" id="kpiPositivacao">% positivação</div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-icon">📊</div>
+      <div class="kpi-label">Margem Média</div>
+      <div class="kpi-value" id="kpiMargem">...</div>
+      <div class="kpi-sub">% média do período</div>
+    </div>
   </div>
 
   <!-- FATURAMENTO MENSAL + UNIDADE -->
@@ -445,6 +457,29 @@ async function carregarMarcas(params) {
 }
 
 // ============================================================
+//  CARTEIRA + MARGEM
+// ============================================================
+async function carregarResumoCarteira(params, filtros) {
+  try {
+    const url = `${API}/api/resumo-carteira?${params}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    const carteira  = data.total_carteira || 0;
+    const atendidos = parseInt(document.getElementById('kpiCli').textContent.replace(/\D/g, '')) || 0;
+    const positiv   = carteira > 0 ? ((atendidos / carteira) * 100).toFixed(1) : '0.0';
+
+    document.getElementById('kpiCarteira').textContent    = num(carteira);
+    document.getElementById('kpiPositivacao').textContent = `${positiv}% positivação`;
+    document.getElementById('kpiMargem').textContent      = (data.margem_media || 0).toFixed(2).replace('.', ',') + '%';
+  } catch(e) {
+    console.error('Erro carteira:', e);
+    document.getElementById('kpiCarteira').textContent = '—';
+    document.getElementById('kpiMargem').textContent   = '—';
+  }
+}
+
+// ============================================================
 //  INICIALIZAÇÃO
 // ============================================================
 window.onload = async () => {
@@ -458,6 +493,7 @@ window.onload = async () => {
     carregarUnidade(params),
     carregarVendedores(params),
     carregarMarcas(params),
+    carregarResumoCarteira(params, filtros),
   ]);
 };
 </script>
