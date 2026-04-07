@@ -94,6 +94,14 @@ tr:hover td { background:rgba(255,255,255,0.02); }
 /* NOTA DE RODAPÉ */
 .nota { font-size:11px; color:var(--muted); padding:8px 12px; background:rgba(255,170,0,0.05); border:1px solid rgba(255,170,0,0.15); border-radius:6px; margin-bottom:16px; }
 
+/* DRILL DOWN */
+.drill-bar { display:none; align-items:center; gap:10px; padding:10px 16px; background:rgba(0,195,255,0.08); border:1px solid rgba(0,195,255,0.25); border-radius:10px; margin-bottom:16px; font-size:13px; }
+.drill-bar.show { display:flex; }
+.drill-tag { background:rgba(0,195,255,0.15); border:1px solid rgba(0,195,255,0.3); border-radius:20px; padding:4px 12px; color:var(--accent2); font-weight:600; }
+.drill-clear { margin-left:auto; background:rgba(255,77,77,0.1); color:var(--danger); border:1px solid rgba(255,77,77,0.2); border-radius:6px; padding:5px 14px; cursor:pointer; font-size:12px; transition:all 0.2s; }
+.drill-clear:hover { background:rgba(255,77,77,0.2); }
+canvas { cursor: pointer; }
+
 @media (max-width: 900px) {
   .charts-row.col-2-1, .charts-row.col-1-1 { grid-template-columns:1fr; }
 }
@@ -135,6 +143,13 @@ tr:hover td { background:rgba(255,255,255,0.02); }
     <span class="filtros-bar-label">🔍 Filtros:</span>
     <span id="tagsAtivas" style="display:flex;gap:8px;flex-wrap:wrap;"></span>
     <a href="home.html" class="btn-alt-filtros">✏️ Alterar filtros</a>
+  </div>
+
+  <!-- DRILL DOWN BAR -->
+  <div class="drill-bar" id="drillBar">
+    <span>🔍 Filtro por clique:</span>
+    <span class="drill-tag" id="drillTag"></span>
+    <button class="drill-clear" onclick="limparDrill()">✕ Limpar</button>
   </div>
 
   <!-- KPIs -->
@@ -229,6 +244,42 @@ const API = 'https://horus-bmcj.onrender.com';
 const MESES = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_EXT = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 let cMensal=null, cUnidade=null, cMarca=null;
+
+// Filtros de drill-down (clique nos gráficos)
+let drillFiltros = {};
+
+function aplicarDrill(tipo, valor, label) {
+  drillFiltros[tipo] = valor;
+  // Mostra barra de drill
+  document.getElementById('drillBar').classList.add('show');
+  const tags = Object.entries(drillFiltros).map(([k, v]) => {
+    const labels = { mes: `Mês: ${v}`, unidade: `Unidade: ${v}`, marca: `Marca: ${v}` };
+    return labels[k] || v;
+  });
+  document.getElementById('drillTag').textContent = tags.join(' + ');
+  recarregarTudo();
+}
+
+function limparDrill() {
+  drillFiltros = {};
+  document.getElementById('drillBar').classList.remove('show');
+  document.getElementById('drillTag').textContent = '';
+  recarregarTudo();
+}
+
+function montarParamsDrill(params) {
+  const p = new URLSearchParams(params);
+  if (drillFiltros.mes)     p.set('mes',     drillFiltros.mes);
+  if (drillFiltros.unidade) p.set('unidade', drillFiltros.unidade);
+  if (drillFiltros.marca)   p.set('marca',   drillFiltros.marca);
+  return p.toString();
+}
+
+async function recarregarTudo() {
+  const filtros = getFiltros();
+  const params  = montarParamsDrill(montarParams(filtros));
+  await recarregarTudo();
+}
 
 // ============================================================
 //  LÊ FILTROS DO localStorage
@@ -506,14 +557,7 @@ window.onload = async () => {
   const params  = montarParams(filtros);
   mostrarTags(filtros);
 
-  await Promise.all([
-    carregarKPIs(params),
-    carregarMensal(params),
-    carregarUnidade(params),
-    carregarVendedores(params),
-    carregarMarcas(params),
-    carregarResumoCarteira(params, filtros),
-  ]);
+  await recarregarTudo();
 };
 </script>
 </body>
