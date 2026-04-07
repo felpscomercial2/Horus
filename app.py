@@ -373,6 +373,11 @@ def limpar_cache():
     cache_clear()
     return jsonify({"status": "cache limpo!"})
 
+# Ping — mantém o servidor acordado
+@app.route('/ping')
+def ping():
+    return jsonify({"status": "pong", "uptime": "ok"})
+
 if __name__ == '__main__':
     print("🚀 API Horus iniciando...")
     app.run(debug=False, host='0.0.0.0', port=5000)
