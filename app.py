@@ -313,6 +313,60 @@ def carteira_vendedor():
     cache_set(key, resultado)
     return jsonify(resultado)
 
+@app.route('/api/resumo-carteira')
+def resumo_carteira():
+    """
+    Retorna total de clientes em carteira e margem média.
+    Se filtrar por vendedor (nome), busca o cod_vendedor correspondente
+    e retorna a carteira daquele vendedor.
+    """
+    key = cache_key('resumo-carteira', dict(request.args))
+    cached = cache_get(key)
+    if cached: return jsonify(cached)
+
+    vendedor = request.args.get('vendedor', '')
+    where, params = montar_filtros(request.args)
+    and_or = 'AND' if where else 'WHERE'
+
+    # Margem média do período filtrado
+    margem = consultar(f"""
+        SELECT ROUND(CAST(AVG(margem) AS NUMERIC), 2) AS margem_media
+        FROM faturamento {where}
+        {and_or} tipo_operacao = 'Venda'
+        AND margem IS NOT NULL AND margem != 0
+    """, params)
+
+    margem_media = margem[0]['margem_media'] if margem else 0
+
+    # Total em carteira
+    if vendedor:
+        # Busca cod_vendedor pelo nome do vendedor no faturamento
+        cods = consultar("""
+            SELECT DISTINCT cod_vendedor FROM faturamento
+            WHERE vendedor = %s AND cod_vendedor IS NOT NULL AND cod_vendedor != ''
+        """, [vendedor])
+
+        if cods:
+            cod_list = [c['cod_vendedor'] for c in cods]
+            placeholders = ','.join(['%s'] * len(cod_list))
+            carteira = consultar(f"""
+                SELECT COUNT(*) as total FROM carteira
+                WHERE cod_vendedor IN ({placeholders})
+            """, cod_list)
+        else:
+            carteira = [{'total': 0}]
+    else:
+        carteira = consultar("SELECT COUNT(*) as total FROM carteira")
+
+    total_carteira = carteira[0]['total'] if carteira else 0
+
+    resultado = {
+        'total_carteira': total_carteira,
+        'margem_media':   float(margem_media) if margem_media else 0,
+    }
+    cache_set(key, resultado)
+    return jsonify(resultado)
+
 # Limpa cache (útil após atualizar dados)
 @app.route('/api/cache/clear', methods=['POST'])
 def limpar_cache():
