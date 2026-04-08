@@ -367,6 +367,26 @@ def resumo_carteira():
     cache_set(key, resultado)
     return jsonify(resultado)
 
+
+@app.route('/api/top-clientes')
+def top_clientes():
+    key = cache_key('top-clientes', dict(request.args))
+    cached = cache_get(key)
+    if cached: return jsonify(cached)
+
+    where, params = montar_filtros(request.args)
+    limite = int(request.args.get('limite', 10))
+    and_or = 'AND' if where else 'WHERE'
+    resultado = consultar(f"""
+        SELECT cliente,
+            ROUND(CAST(SUM(valor_nf) AS NUMERIC), 2) AS faturamento,
+            COUNT(*) AS qtd_vendas
+        FROM faturamento {where} {and_or} tipo_operacao = 'Venda'
+        GROUP BY cliente ORDER BY faturamento DESC LIMIT %s
+    """, params + [limite])
+    cache_set(key, resultado)
+    return jsonify(resultado)
+
 # Limpa cache (útil após atualizar dados)
 @app.route('/api/cache/clear', methods=['POST'])
 def limpar_cache():
