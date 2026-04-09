@@ -495,6 +495,23 @@ def pivot_clientes():
     """, params + extra_params)
     return jsonify(resultado)
 
+
+@app.route('/api/vendedores-por-produto')
+def vendedores_por_produto():
+    produtos = request.args.getlist('produtos')
+    if not produtos:
+        return jsonify([])
+    placeholders = ','.join(['%s'] * len(produtos))
+    resultado = consultar(f"""
+        SELECT DISTINCT vendedor
+        FROM faturamento
+        WHERE produto IN ({placeholders})
+          AND vendedor IS NOT NULL AND vendedor != ''
+          AND tipo_operacao = 'Venda'
+        ORDER BY vendedor
+    """, produtos)
+    return jsonify([r['vendedor'] for r in resultado])
+
 # Limpa cache (útil após atualizar dados)
 @app.route('/api/cache/clear', methods=['POST'])
 def limpar_cache():
