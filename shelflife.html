@@ -132,31 +132,6 @@ tr:hover td{background:rgba(1,95,184,0.05);}
 .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
 .empty-state div{font-size:40px;margin-bottom:12px;}
 .empty-state p{font-size:14px;}
-
-/* DELETE BUTTON */
-.btn-excluir-semana{
-  display:flex;align-items:center;gap:6px;
-  padding:6px 14px;border-radius:8px;
-  background:rgba(255,77,77,0.1);
-  color:var(--danger);
-  border:1px solid rgba(255,77,77,0.3);
-  cursor:pointer;font-size:12px;font-weight:600;
-  transition:all 0.2s;white-space:nowrap;
-}
-.btn-excluir-semana:hover{background:rgba(255,77,77,0.25);border-color:var(--danger);}
-.btn-excluir-semana:disabled{opacity:0.3;cursor:not-allowed;}
-
-/* MODAL CONFIRM */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;align-items:center;justify-content:center;}
-.modal-overlay.show{display:flex;}
-.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:400px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.5);}
-.modal-box h3{font-size:16px;margin-bottom:8px;}
-.modal-box p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
-.modal-actions{display:flex;gap:10px;justify-content:center;}
-.modal-btn-cancel{padding:9px 22px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:13px;transition:all 0.2s;}
-.modal-btn-cancel:hover{border-color:var(--muted);color:var(--text);}
-.modal-btn-confirm{padding:9px 22px;border-radius:8px;background:rgba(255,77,77,0.15);border:1px solid rgba(255,77,77,0.4);color:var(--danger);cursor:pointer;font-size:13px;font-weight:700;transition:all 0.2s;}
-.modal-btn-confirm:hover{background:rgba(255,77,77,0.3);}
 </style>
 </head>
 <body>
@@ -192,18 +167,6 @@ tr:hover td{background:rgba(1,95,184,0.05);}
   <div class="sidebar-divider"></div>
   <button class="btn-logout" onclick="logout()">&#x2192; Sair</button>
 </nav>
-
-<!-- MODAL EXCLUIR SEMANA -->
-<div class="modal-overlay" id="modalExcluir">
-  <div class="modal-box">
-    <h3>🗑️ Excluir Planilha</h3>
-    <p id="modalExcluirTexto">Tem certeza que deseja excluir todos os dados desta semana? Esta ação não pode ser desfeita.</p>
-    <div class="modal-actions">
-      <button class="modal-btn-cancel" onclick="fecharModal()">Cancelar</button>
-      <button class="modal-btn-confirm" onclick="excluirSemana()">Sim, excluir</button>
-    </div>
-  </div>
-</div>
 
 <!-- MAIN -->
 <main class="main">
@@ -255,9 +218,6 @@ tr:hover td{background:rgba(1,95,184,0.05);}
     <div class="semana-sel">
       <span>Semana:</span>
       <select id="semanaSel" onchange="carregarDados()"></select>
-      <button class="btn-excluir-semana" id="btnExcluirSemana" onclick="confirmarExclusao()" title="Excluir esta planilha" disabled>
-        🗑️ Excluir
-      </button>
     </div>
   </div>
 
@@ -465,9 +425,6 @@ async function carregarSemanas() {
       o.text  = s.semana + (s.unidade ? ' — ' + s.unidade : '') + ' (' + s.total + ' itens)';
       sel.appendChild(o);
     });
-    // Habilita botão excluir se houver semanas
-    var btnExc = document.getElementById('btnExcluirSemana');
-    if (btnExc) btnExc.disabled = data.length === 0;
   } catch(e) { console.error('Erro ao carregar semanas:', e); }
 }
 
@@ -612,45 +569,6 @@ function renderTabela() {
   });
 
   tbody.innerHTML = html;
-}
-
-// ─── EXCLUIR SEMANA ───────────────────────────────────────────
-function confirmarExclusao() {
-  var semana = document.getElementById('semanaSel').value;
-  if (!semana) return;
-  var txt = document.getElementById('modalExcluirTexto');
-  txt.innerHTML = 'Tem certeza que deseja excluir todos os dados da semana <strong style="color:var(--accent2);">' + semana + '</strong>?<br><span style="color:var(--danger);font-size:11px;">Esta ação não pode ser desfeita.</span>';
-  document.getElementById('modalExcluir').classList.add('show');
-}
-
-function fecharModal() {
-  document.getElementById('modalExcluir').classList.remove('show');
-}
-
-async function excluirSemana() {
-  fecharModal();
-  var semana = document.getElementById('semanaSel').value;
-  if (!semana) return;
-  var loader = document.getElementById('loadingGlobal');
-  loader.classList.add('show');
-  try {
-    var res = await fetch(API + '/api/shelflife/excluir?semana=' + encodeURIComponent(semana), { method: 'DELETE' });
-    if (res.ok) {
-      alert('✅ Planilha da semana ' + semana + ' excluída com sucesso!');
-      dadosCompletos = [];
-      mapaSemanaAnterior = {};
-      atualizarKPIs();
-      renderTabela();
-      await carregarSemanas();
-    } else {
-      var err = await res.json().catch(function(){ return {}; });
-      alert('Erro ao excluir: ' + (err.message || res.statusText));
-    }
-  } catch(e) {
-    alert('Erro ao excluir planilha: ' + e.message);
-  } finally {
-    loader.classList.remove('show');
-  }
 }
 
 // ─── LOGOUT ───────────────────────────────────────────────────
