@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horus — Shelf Life</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0D1117;--card:#1A1D2D;--sidebar:#252A3D;
+  --accent:#015FB8;--accent2:#00c3ff;--text:#F5F5F5;
+  --muted:#a0aec0;--border:rgba(255,255,255,0.07);
+  --success:#00ff88;--danger:#ff4d4d;--warning:#ffaa00;--sl:#a78bfa;
+}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--sidebar);position:fixed;top:0;left:0;height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 12px;border-right:1px solid var(--border);z-index:100;}
+.sidebar-logo{width:100px;margin-bottom:4px;filter:drop-shadow(0 2px 8px rgba(1,95,184,0.4));}
+.sidebar-title{font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:28px;}
+.nav-section{width:100%;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;padding:0 8px;margin-bottom:6px;}
+.nav-item{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all 0.2s;border:1px solid transparent;text-decoration:none;margin-bottom:2px;}
+.nav-item:hover{background:rgba(1,95,184,0.1);color:var(--text);border-color:rgba(1,95,184,0.2);}
+.nav-item.active{background:rgba(1,95,184,0.2);color:#fff;border-color:var(--accent);}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-divider{width:100%;height:1px;background:var(--border);margin:16px 0;}
+.btn-logout{margin-top:auto;width:100%;padding:10px;border-radius:8px;background:rgba(255,77,77,0.1);color:var(--danger);border:1px solid rgba(255,77,77,0.2);cursor:pointer;font-size:13px;}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;padding:28px;}
+
+/* HEADER */
+.page-header{margin-bottom:24px;}
+.page-header h1{font-size:22px;font-weight:700;}
+.page-header p{font-size:13px;color:var(--muted);margin-top:4px;}
+
+/* UPLOAD */
+.upload-card{background:var(--card);border:2px dashed var(--border);border-radius:16px;padding:28px;text-align:center;margin-bottom:24px;transition:all 0.2s;cursor:pointer;}
+.upload-card:hover,.upload-card.drag{border-color:var(--accent);background:rgba(1,95,184,0.05);}
+.upload-icon{font-size:40px;margin-bottom:10px;opacity:0.6;}
+.upload-title{font-size:15px;font-weight:600;margin-bottom:4px;}
+.upload-sub{font-size:12px;color:var(--muted);}
+.upload-input{display:none;}
+.btn-upload{display:inline-block;margin-top:12px;padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+.unidade-wrap{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:12px;}
+.unidade-wrap label{font-size:12px;color:var(--muted);}
+.unidade-wrap select{padding:7px 12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;}
+
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;overflow:hidden;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:12px 0 0 12px;}
+.kpi-card.total::before{background:var(--accent);}
+.kpi-card.critico::before{background:var(--danger);}
+.kpi-card.atencao::before{background:var(--warning);}
+.kpi-card.ok::before{background:var(--success);}
+.kpi-card.sl::before{background:var(--sl);}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.kpi-value{font-size:22px;font-weight:800;}
+
+/* FILTROS */
+.filtros-bar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.filtro-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:all 0.2s;}
+.filtro-btn.ativo-todos{background:rgba(1,95,184,0.3);border-color:var(--accent);color:#fff;}
+.filtro-btn.ativo-critico{background:rgba(255,77,77,0.2);border-color:var(--danger);color:var(--danger);}
+.filtro-btn.ativo-atencao{background:rgba(255,170,0,0.2);border-color:var(--warning);color:var(--warning);}
+.filtro-btn.ativo-ok{background:rgba(0,255,136,0.2);border-color:var(--success);color:var(--success);}
+.filtro-btn.ativo-sl{background:rgba(167,139,250,0.2);border-color:var(--sl);color:var(--sl);}
+.semana-sel{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+.semana-sel select{padding:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;}
+
+/* PESQUISA */
+.pesquisa-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.pesquisa-input-wrap{position:relative;flex:1;max-width:420px;}
+.pesquisa-input-wrap span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none;}
+.pesquisa-input{width:100%;padding:9px 12px 9px 36px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;outline:none;transition:border 0.2s;}
+.pesquisa-input:focus{border-color:var(--accent);}
+.btn-limpar-pesquisa{padding:9px 14px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:12px;transition:all 0.2s;}
+.btn-limpar-pesquisa:hover{border-color:var(--muted);color:var(--text);}
+.pesquisa-info{font-size:12px;color:var(--muted);white-space:nowrap;}
+
+/* TABELA */
+.table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--border);max-height:calc(100vh - 440px);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead{position:sticky;top:0;z-index:5;white-space:nowrap;}
+th{background:#1e2438;padding:10px 12px;text-align:left;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid var(--border);}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;white-space:nowrap;}
+tr:hover td{background:rgba(1,95,184,0.05);}
+
+/* BADGES STATUS */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-critico{background:rgba(255,77,77,0.15);color:var(--danger);border:1px solid rgba(255,77,77,0.3);}
+.badge-atencao{background:rgba(255,170,0,0.15);color:var(--warning);border:1px solid rgba(255,170,0,0.3);}
+.badge-ok{background:rgba(0,255,136,0.1);color:var(--success);border:1px solid rgba(0,255,136,0.2);}
+.badge-sl{background:rgba(167,139,250,0.15);color:var(--sl);border:1px solid rgba(167,139,250,0.3);}
+
+/* LOADING */
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes ringRotate{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes logoFloat{
+  0%,100%{transform:scale(1) translateY(0);filter:drop-shadow(0 0 15px rgba(1,95,184,0.8));}
+  25%{transform:scale(1.06) translateY(-4px);filter:drop-shadow(0 0 30px rgba(0,195,255,1));}
+  50%{transform:scale(0.97) translateY(2px);filter:drop-shadow(0 0 10px rgba(1,95,184,0.5));}
+  75%{transform:scale(1.04) translateY(-2px);filter:drop-shadow(0 0 25px rgba(0,255,200,0.8));}
+}
+@keyframes textGlow{
+  0%,100%{text-shadow:0 0 10px rgba(1,95,184,0.8);}
+  50%{text-shadow:0 0 20px rgba(0,195,255,1),0 0 40px rgba(0,195,255,0.6);}
+}
+@keyframes subFade{0%,100%{opacity:0.4;}50%{opacity:1;}}
+@keyframes beamSlide{0%{transform:translateX(-100%);}100%{transform:translateX(400%);}}
+@keyframes glowPulse{0%,100%{transform:scale(1);opacity:0.6;}50%{transform:scale(1.8);opacity:0.2;}}
+
+.loading-overlay{display:none;position:fixed;inset:0;background:radial-gradient(ellipse at center,#010d1f 0%,#000508 100%);z-index:999;align-items:center;justify-content:center;flex-direction:column;}
+.loading-overlay.show{display:flex;}
+.loading-scene{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;width:320px;height:320px;}
+.lo-ring{position:absolute;border-radius:50%;border:1px solid transparent;animation:ringRotate linear infinite;}
+.lo-ring-1{width:260px;height:260px;border-top-color:#015FB8;border-right-color:rgba(1,95,184,0.3);animation-duration:3s;box-shadow:0 0 20px rgba(1,95,184,0.3);}
+.lo-ring-2{width:210px;height:210px;border-bottom-color:#00c3ff;border-left-color:rgba(0,195,255,0.3);animation-duration:2s;animation-direction:reverse;}
+.lo-ring-3{width:160px;height:160px;border-top-color:rgba(0,255,200,0.6);animation-duration:1.5s;}
+.lo-logo-wrap{position:relative;z-index:10;display:flex;align-items:center;justify-content:center;}
+.lo-logo{width:100px;animation:logoFloat 3s ease-in-out infinite;}
+.lo-glow{position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(0,195,255,0.15) 0%,transparent 70%);animation:glowPulse 2s ease-in-out infinite;}
+.lo-text{position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;white-space:nowrap;}
+.lo-title{font-size:18px;font-weight:800;letter-spacing:8px;color:#fff;animation:textGlow 2s ease-in-out infinite;}
+.lo-sub{font-size:9px;letter-spacing:4px;color:#00c3ff;opacity:0.7;animation:subFade 2s ease-in-out infinite;}
+.lo-track{width:160px;height:2px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;margin-top:4px;}
+.lo-beam{height:100%;width:30%;border-radius:2px;background:linear-gradient(90deg,transparent,#00c3ff,#015FB8,transparent);animation:beamSlide 1.5s ease-in-out infinite;}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state div{font-size:40px;margin-bottom:12px;}
+.empty-state p{font-size:14px;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingGlobal">
+  <div class="loading-scene">
+    <div class="lo-ring lo-ring-1"></div>
+    <div class="lo-ring lo-ring-2"></div>
+    <div class="lo-ring lo-ring-3"></div>
+    <div class="lo-logo-wrap">
+      <div class="lo-glow"></div>
+      <img class="lo-logo" src="logo.png" onerror="this.style.display='none'">
+    </div>
+    <div class="lo-text">
+      <div class="lo-title">HORUS</div>
+      <div class="lo-sub">CARREGANDO</div>
+      <div class="lo-track"><div class="lo-beam"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <img class="sidebar-logo" src="logo.png" onerror="this.style.display='none'">
+  <div class="sidebar-title">HORUS PORTAL</div>
+  <div class="nav-section">Menu</div>
+  <a class="nav-item" href="home.html"><span class="icon">🏠</span> Início</a>
+  <a class="nav-item" href="dashboard.html"><span class="icon">📊</span> Dashboard</a>
+  <a class="nav-item" href="vendedor.html"><span class="icon">👤</span> Análise Vendedor</a>
+  <a class="nav-item" href="produtos.html"><span class="icon">📦</span> Top Produtos</a>
+  <a class="nav-item active" href="shelflife.html"><span class="icon">⏳</span> Shelf Life</a>
+  <div class="sidebar-divider"></div>
+  <button class="btn-logout" onclick="logout()">&#x2192; Sair</button>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="page-header">
+    <h1>⏳ Shelf Life</h1>
+    <p>Gestão de produtos com validade próxima</p>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="upload-card" id="uploadCard"
+       ondragover="event.preventDefault();this.classList.add('drag')"
+       ondragleave="this.classList.remove('drag')"
+       ondrop="onDrop(event)">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">Enviar planilha de Shelf Life</div>
+    <div class="upload-sub">Arraste o arquivo .xlsx aqui ou clique para selecionar</div>
+    <div class="unidade-wrap">
+      <label>Unidade:</label>
+      <select id="selUnidade" onchange="atualizarBotaoUpload()">
+        <option value="">— Selecione a unidade —</option>
+        <option value="MATRIZ">Matriz</option>
+        <option value="FILIAL1">Filial 1</option>
+        <option value="FILIAL2">Filial 2</option>
+      </select>
+    </div>
+    <label class="btn-upload" id="btnUploadLabel" for="fileInput"
+      style="opacity:0.4;cursor:not-allowed;pointer-events:none;"
+      title="Selecione a unidade primeiro">Selecionar arquivo</label>
+    <input class="upload-input" type="file" id="fileInput" accept=".xlsx,.xls" disabled onchange="processarArquivo(this.files[0])">
+    <div id="avisoUnidade" style="margin-top:8px;font-size:12px;color:var(--warning);">⚠️ Selecione a unidade antes de enviar o arquivo</div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card total"><div class="kpi-label">📋 Total Itens</div><div class="kpi-value" id="kTotal">-</div></div>
+    <div class="kpi-card critico"><div class="kpi-label">🔴 Crítico (até 30d)</div><div class="kpi-value" id="kCritico">-</div></div>
+    <div class="kpi-card atencao"><div class="kpi-label">⚪ Atenção (31-60d)</div><div class="kpi-value" id="kAtencao">-</div></div>
+    <div class="kpi-card ok"><div class="kpi-label">✅ OK (61-120d)</div><div class="kpi-value" id="kOk">-</div></div>
+    <div class="kpi-card sl"><div class="kpi-label">🟣 Em Ação SL</div><div class="kpi-value" id="kSl">-</div></div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filtros-bar">
+    <button class="filtro-btn ativo-todos" id="btnTodos"    onclick="filtrar('todos',this)">Todos</button>
+    <button class="filtro-btn"             id="btnCritico"  onclick="filtrar('CRITICO',this)">🔴 Crítico</button>
+    <button class="filtro-btn"             id="btnAtencao"  onclick="filtrar('ATENCAO',this)">⚪ Atenção</button>
+    <button class="filtro-btn"             id="btnOk"       onclick="filtrar('OK',this)">✅ OK</button>
+    <button class="filtro-btn"             id="btnSl"       onclick="filtrar('SL',this)">🟣 Em Ação SL</button>
+    <div class="semana-sel">
+      <span>Semana:</span>
+      <select id="semanaSel" onchange="carregarDados()"></select>
+    </div>
+  </div>
+
+  <!-- PESQUISA -->
+  <div class="pesquisa-wrap">
+    <div class="pesquisa-input-wrap">
+      <span>🔍</span>
+      <input class="pesquisa-input" id="campoPesquisa" type="text"
+             placeholder="Pesquisar por nome ou código do produto..."
+             oninput="renderTabela()">
+    </div>
+    <button class="btn-limpar-pesquisa" onclick="document.getElementById('campoPesquisa').value='';renderTabela();">Limpar</button>
+    <span class="pesquisa-info" id="pesquisaInfo"></span>
+  </div>
+
+  <!-- LEGENDA -->
+  <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap;font-size:12px;">
+    <span style="color:var(--muted);">Comparação com semana anterior:</span>
+    <span style="background:rgba(160,160,160,0.2);border:1px solid #666;border-radius:6px;padding:3px 10px;color:#aaa;">&#9632; Produto novo</span>
+    <span style="background:rgba(255,170,0,0.15);border:1px solid var(--warning);border-radius:6px;padding:3px 10px;color:var(--warning);">&#9650; Quantidade aumentou</span>
+    <span style="background:rgba(0,255,136,0.1);border:1px solid var(--success);border-radius:6px;padding:3px 10px;color:var(--success);">&#9660; Quantidade reduziu ou igual</span>
+  </div>
+
+  <!-- TABELA -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Código SL</th>
+          <th>Descrição</th>
+          <th>Marca</th>
+          <th>Qtde.</th>
+          <th>Qtde Atual</th>
+          <th>Vda 3m</th>
+          <th>Vda Mensal</th>
+          <th>Data Vcto.</th>
+          <th>Dias</th>
+          <th>Status</th>
+          <th>OBS Logística</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="tbodySL"></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+var API = 'https://horus-bmcj.onrender.com';
+var dadosCompletos = [];
+var filtroAtual = 'todos';
+var mapaSemanaAnterior = {}; // chave: cod_produto|validade → quantidade_log
+
+// ─── SERIAL EXCEL → DATA ───────────────────────────────────────
+function excelSerialParaData(serial) {
+  if (!serial || isNaN(serial)) return '';
+  var epoch = new Date(Date.UTC(1899, 11, 30));
+  var data  = new Date(epoch.getTime() + Number(serial) * 86400000);
+  var d = String(data.getUTCDate()).padStart(2,'0');
+  var m = String(data.getUTCMonth()+1).padStart(2,'0');
+  var a = data.getUTCFullYear();
+  return d+'/'+m+'/'+a;
+}
+
+function excelSerialParaISO(serial) {
+  if (!serial || isNaN(serial)) return null;
+  var epoch = new Date(Date.UTC(1899, 11, 30));
+  var data  = new Date(epoch.getTime() + Number(serial) * 86400000);
+  return data.toISOString().slice(0,10);
+}
+
+// ─── DRAG & DROP ───────────────────────────────────────────────
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadCard').classList.remove('drag');
+  if (!document.getElementById('selUnidade').value) {
+    alert('Selecione a unidade antes de enviar o arquivo.');
+    return;
+  }
+  var file = e.dataTransfer.files[0];
+  if (file) processarArquivo(file);
+}
+
+function atualizarBotaoUpload() {
+  var unidade  = document.getElementById('selUnidade').value;
+  var label    = document.getElementById('btnUploadLabel');
+  var input    = document.getElementById('fileInput');
+  var aviso    = document.getElementById('avisoUnidade');
+  if (unidade) {
+    label.style.opacity        = '1';
+    label.style.cursor         = 'pointer';
+    label.style.pointerEvents  = 'auto';
+    label.title                = '';
+    input.disabled             = false;
+    aviso.style.display        = 'none';
+  } else {
+    label.style.opacity        = '0.4';
+    label.style.cursor         = 'not-allowed';
+    label.style.pointerEvents  = 'none';
+    label.title                = 'Selecione a unidade primeiro';
+    input.disabled             = true;
+    aviso.style.display        = 'block';
+  }
+}
+
+// ─── PROCESSAR XLSX ───────────────────────────────────────────
+function processarArquivo(file) {
+  if (!file) return;
+  var loader = document.getElementById('loadingGlobal');
+  loader.classList.add('show');
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb   = XLSX.read(e.target.result, {type:'binary'});
+      var ws   = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      if (rows.length < 2) { alert('Planilha vazia ou sem dados.'); loader.classList.remove('show'); return; }
+
+      // Mapeia cabeçalhos
+      var header = rows[0].map(function(h){ return String(h).trim(); });
+      var colIdx = {};
+      header.forEach(function(h,i){ colIdx[h] = i; });
+
+      var get = function(row, nome) {
+        var idx = colIdx[nome];
+        return idx !== undefined ? row[idx] : '';
+      };
+
+      var produtos = [];
+      for (var i = 1; i < rows.length; i++) {
+        var row = rows[i];
+        // Ignora linhas de totais ou vazias
+        var cod = String(get(row,'Código')||'').trim();
+        if (!cod || cod.toLowerCase().startsWith('total')) continue;
+
+        var serialVcto = get(row,'Data Vcto.');
+        var isoVcto    = excelSerialParaISO(serialVcto);
+        var exibVcto   = excelSerialParaData(serialVcto);
+
+        produtos.push({
+          cod_produto:   cod,
+          cod_sl:        String(get(row,'Código SL')||'').trim(),
+          produto:       String(get(row,'Descrição')||'').trim(),
+          marca:         String(get(row,'Marca')||'').trim(),
+          quantidade:    Number(get(row,'Qtde.'))||0,
+          qtde_atual:    Number(get(row,'Qtde Atual'))||0,
+          vda_3m:        Number(get(row,'Vda 3m'))||0,
+          vda_mensal:    Number(get(row,'Vda Mensal'))||0,
+          data_inclusao: String(get(row,'Data Inclusão')||'').trim(),
+          validade:      isoVcto,
+          validade_exib: exibVcto,
+          obs_logistica: String(get(row,'OBS Logística')||'').trim(),
+          acao:          String(get(row,'Ação')||'').trim(),
+        });
+      }
+
+      if (!produtos.length) { alert('Nenhum produto encontrado na planilha.'); loader.classList.remove('show'); return; }
+
+      // Determina semana (data de hoje no formato YYYY-MM-DD)
+      var hoje = new Date();
+      var semana = hoje.toISOString().slice(0,10);
+      var unidade = document.getElementById('selUnidade').value;
+
+      enviarParaAPI(semana, unidade, produtos, loader);
+    } catch(err) {
+      alert('Erro ao ler planilha: ' + err.message);
+      loader.classList.remove('show');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ─── ENVIAR PARA API ──────────────────────────────────────────
+async function enviarParaAPI(semana, unidade, produtos, loader) {
+  try {
+    var res = await fetch(API+'/api/shelflife/upload', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({semana:semana, unidade:unidade, produtos:produtos})
+    });
+    var result = await res.json();
+    alert('✅ ' + result.inseridos + ' produtos importados!\nSemana: ' + semana + ' | Unidade: ' + unidade);
+    await carregarSemanas();
+    await carregarDados();
+  } catch(err) {
+    alert('Erro ao enviar dados: ' + err.message);
+  } finally {
+    loader.classList.remove('show');
+  }
+}
+
+// ─── CARREGAR SEMANAS ─────────────────────────────────────────
+async function carregarSemanas() {
+  try {
+    var res  = await fetch(API+'/api/shelflife/semanas');
+    var data = await res.json();
+    var sel  = document.getElementById('semanaSel');
+    sel.innerHTML = '';
+    data.forEach(function(s) {
+      var o = document.createElement('option');
+      o.value = s.semana;
+      o.text  = s.semana + (s.unidade ? ' — ' + s.unidade : '') + ' (' + s.total + ' itens)';
+      sel.appendChild(o);
+    });
+  } catch(e) { console.error('Erro ao carregar semanas:', e); }
+}
+
+// ─── CARREGAR DADOS ───────────────────────────────────────────
+async function carregarDados() {
+  var semana = document.getElementById('semanaSel').value;
+  try {
+    var url = API + '/api/shelflife/listar' + (semana ? '?semana=' + encodeURIComponent(semana) : '');
+    var res  = await fetch(url);
+    dadosCompletos = await res.json();
+
+    // Busca semana anterior para comparação
+    mapaSemanaAnterior = {};
+    try {
+      var semanas = await (await fetch(API+'/api/shelflife/semanas')).json();
+      // Encontra índice da semana atual na lista
+      var idx = semanas.findIndex(function(s){ return s.semana === semana; });
+      if (idx >= 0 && idx < semanas.length - 1) {
+        var semanaAnt = semanas[idx + 1].semana;
+        var resAnt = await fetch(API + '/api/shelflife/listar?semana=' + encodeURIComponent(semanaAnt));
+        var dadosAnt = await resAnt.json();
+        dadosAnt.forEach(function(d) {
+          var chave = String(d.cod_produto) + '|' + String(d.validade || '').slice(0, 10);
+          mapaSemanaAnterior[chave] = d.quantidade_log;
+        });
+      }
+    } catch(e) { console.error('Erro ao carregar semana anterior:', e); }
+
+    atualizarKPIs();
+    renderTabela();
+  } catch(e) { console.error('Erro ao carregar dados:', e); }
+}
+
+// ─── KPIs ─────────────────────────────────────────────────────
+function atualizarKPIs() {
+  document.getElementById('kTotal').textContent   = dadosCompletos.length;
+  document.getElementById('kCritico').textContent = dadosCompletos.filter(function(d){return d.status==='CRITICO'&&!d.is_sl;}).length;
+  document.getElementById('kAtencao').textContent = dadosCompletos.filter(function(d){return d.status==='ATENCAO'&&!d.is_sl;}).length;
+  document.getElementById('kOk').textContent      = dadosCompletos.filter(function(d){return d.status==='OK'&&!d.is_sl;}).length;
+  document.getElementById('kSl').textContent      = dadosCompletos.filter(function(d){return d.is_sl;}).length;
+}
+
+// ─── FILTRAR STATUS ───────────────────────────────────────────
+function filtrar(status, btn) {
+  filtroAtual = status;
+  var mapa = {todos:'ativo-todos',CRITICO:'ativo-critico',ATENCAO:'ativo-atencao',OK:'ativo-ok',SL:'ativo-sl'};
+  ['btnTodos','btnCritico','btnAtencao','btnOk','btnSl'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.className = 'filtro-btn';
+  });
+  btn.className = 'filtro-btn ' + (mapa[status]||'ativo-todos');
+  renderTabela();
+}
+
+// ─── NORMALIZAR TEXTO ─────────────────────────────────────────
+function norm(s) {
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+// ─── RENDER TABELA ────────────────────────────────────────────
+function renderTabela() {
+  var dados = dadosCompletos.slice();
+
+  // Filtro status
+  if (filtroAtual === 'SL')        dados = dados.filter(function(d){return d.is_sl;});
+  else if (filtroAtual !== 'todos') dados = dados.filter(function(d){return d.status===filtroAtual&&!d.is_sl;});
+
+  // Filtro pesquisa
+  var termo = norm((document.getElementById('campoPesquisa')||{}).value||'').trim();
+  if (termo) {
+    dados = dados.filter(function(d){
+      return norm(d.produto).indexOf(termo) !== -1 ||
+             norm(d.cod_produto).indexOf(termo) !== -1;
+    });
+  }
+
+  // Info pesquisa
+  var infoEl = document.getElementById('pesquisaInfo');
+  if (infoEl) {
+    if (termo && dados.length) {
+      var totalQtd = dados.reduce(function(acc,d){return acc+(parseFloat(d.quantidade_log)||0);},0);
+      infoEl.innerHTML = '<strong style="color:var(--accent2);">'+dados.length+'</strong> linha(s) &nbsp;·&nbsp; Total estoque: <strong style="color:var(--success);">'+totalQtd.toLocaleString('pt-BR')+'</strong>';
+    } else if (termo) {
+      infoEl.innerHTML = '<span style="color:var(--danger);">Nenhum produto encontrado</span>';
+    } else {
+      infoEl.innerHTML = '';
+    }
+  }
+
+  var tbody = document.getElementById('tbodySL');
+
+  if (!dados.length) {
+    tbody.innerHTML = '<tr><td colspan="13"><div class="empty-state"><div>📭</div><p>Nenhum produto encontrado</p></div></td></tr>';
+    return;
+  }
+
+  var html = '';
+  dados.forEach(function(d) {
+    var status = d.status || 'OK';
+    var isSl   = d.is_sl;
+    var badgeClass = isSl ? 'badge-sl' : (status==='CRITICO'?'badge-critico':status==='ATENCAO'?'badge-atencao':'badge-ok');
+    var badgeText  = isSl ? 'SL' : status;
+
+    // Data de validade — usa campo exibição se disponível, senão formata do ISO
+    var vcto = d.validade_exib || d.validade || '';
+    if (!vcto && d.validade) vcto = d.validade;
+
+    // Dias — colore por urgência
+    var dias = d.dias_vencimento;
+    var diasStr = (dias !== null && dias !== undefined) ? dias : '-';
+    var diasColor = dias <= 30 ? 'var(--danger)' : dias <= 60 ? 'var(--warning)' : 'var(--success)';
+
+    // Comparação com semana anterior
+    var chave = String(d.cod_produto) + '|' + String(d.validade || '').slice(0, 10);
+    var qtdAnterior = mapaSemanaAnterior[chave];
+    var qtdAtual    = d.quantidade_log || 0;
+    var tagComp = '';
+    if (qtdAnterior === undefined) {
+      tagComp = '<span style="margin-left:6px;background:rgba(160,160,160,0.2);border:1px solid #666;border-radius:4px;padding:2px 7px;font-size:10px;color:#aaa;font-weight:700;">NOVO</span>';
+    } else if (qtdAtual > qtdAnterior) {
+      tagComp = '<span style="margin-left:6px;background:rgba(255,170,0,0.15);border:1px solid var(--warning);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--warning);font-weight:700;">▲ AUMENTOU</span>';
+    } else {
+      tagComp = '<span style="margin-left:6px;background:rgba(0,255,136,0.1);border:1px solid var(--success);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--success);font-weight:700;">▼ REDUZIU</span>';
+    }
+
+    html +=
+      '<tr>'+
+      '<td style="color:var(--muted);font-size:11px;">'+(d.cod_produto||'-')+'</td>'+
+      '<td style="color:var(--sl);font-size:11px;">'+(d.cod_sl||'-')+'</td>'+
+      '<td style="font-weight:600;min-width:200px;white-space:normal;word-break:break-word;">'+(d.produto||'-')+tagComp+'</td>'+
+      '<td style="font-size:12px;">'+(d.marca||'-')+'</td>'+
+      '<td style="text-align:right;">'+(d.quantidade_log||0)+'</td>'+
+      '<td style="text-align:right;">'+(d.qtde_atual!==undefined&&d.qtde_atual!==null?d.qtde_atual:'-')+'</td>'+
+      '<td style="text-align:right;">'+(d.vda_3m!==undefined&&d.vda_3m!==null?d.vda_3m:'-')+'</td>'+
+      '<td style="text-align:right;">'+(d.vda_mensal!==undefined&&d.vda_mensal!==null?d.vda_mensal:'-')+'</td>'+
+      '<td>'+(vcto||'-')+'</td>'+
+      '<td style="text-align:right;color:'+diasColor+';font-weight:700;">'+diasStr+'</td>'+
+      '<td><span class="badge '+badgeClass+'">'+badgeText+'</span></td>'+
+      '<td style="font-size:12px;color:var(--muted);max-width:180px;white-space:normal;word-break:break-word;">'+(d.obs_logistica||'')+'</td>'+
+      '<td style="font-size:12px;">'+(d.acao||'')+'</td>'+
+      '</tr>';
+  });
+
+  tbody.innerHTML = html;
+}
+
+// ─── LOGOUT ───────────────────────────────────────────────────
+function logout() {
+  localStorage.removeItem('horus_filtros');
+  location.href = 'index.html';
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+window.onload = async function() {
+  var loader = document.getElementById('loadingGlobal');
+  loader.classList.add('show');
+  await carregarSemanas();
+  await carregarDados();
+  loader.classList.remove('show');
+};
+</script>
+</body>
+</html>
