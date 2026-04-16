@@ -1,4 +1,3 @@
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import psycopg2
@@ -520,17 +519,15 @@ def shelflife_upload():
         cursor.execute("""
             INSERT INTO shelflife (
                 semana, unidade, cod_produto, cod_sl, produto, marca,
-                quantidade_log, qtde_atual, vda_3m, vda_mensal,
-                validade, dias_vencimento, status_logistica, acao, status, is_sl
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                quantidade_log, validade, dias_vencimento,
+                vence_em, status_logistica, status, is_sl
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, [
             semana, unidade,
             p.get('cod_produto'), p.get('cod_sl'),
             nome, p.get('marca'),
-            p.get('quantidade'),
-            p.get('qtde_atual'), p.get('vda_3m'), p.get('vda_mensal'),
-            validade[:10] if validade and len(str(validade))>=10 else None,
-            dias, p.get('obs_logistica'), p.get('acao'),
+            p.get('quantidade'), validade[:10] if validade and len(str(validade))>=10 else None,
+            dias, p.get('vence_em'), p.get('status_logistica'),
             status, is_sl
         ])
         inseridos += 1
