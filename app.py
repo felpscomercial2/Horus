@@ -872,6 +872,22 @@ def ping():
     return jsonify({"status": "pong", "uptime": "ok"})
 
 
+@app.route('/api/debug/listar')
+def debug_listar():
+    import traceback
+    semana  = request.args.get('semana', '2026-04-20')
+    unidade = request.args.get('unidade', 'PR')
+    try:
+        where = ["semana = %s", "unidade = %s"]
+        params = [semana, unidade]
+        where_str = "WHERE " + " AND ".join(where)
+        sql = f"SELECT * FROM shelflife {where_str} ORDER BY dias_vencimento ASC"
+        resultado = consultar(sql, params)
+        return jsonify({'sql': sql, 'params': params, 'total': len(resultado), 'primeiros': resultado[:2]})
+    except Exception as e:
+        return jsonify({'erro': str(e), 'traceback': traceback.format_exc(), 'semana': semana, 'unidade': unidade}), 500
+
+
 @app.route('/api/debug/shelflife')
 def debug_shelflife():
     try:
