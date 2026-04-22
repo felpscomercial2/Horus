@@ -63,32 +63,23 @@ def consultar(sql, params=()):
 #    "2026-04-20"                     (já correto)
 # ============================================================
 def normalizar_semana(semana_str):
-    import re
     if not semana_str:
         return None
-    s = semana_str.strip()
-    # Caso mais comum: ja esta em YYYY-MM-DD — retorna direto sem parsear
-    if re.match(r"^\d{4}-\d{2}-\d{2}$", s):
-        return s
-    # Tem timestamp junto: "2026-04-20T..." ou "2026-04-20 ..."
-    if len(s) > 10 and s[4] == "-" and (s[10] == "T" or s[10] == " "):
+    s = str(semana_str).strip()
+    # Se começa com YYYY- (4 digitos + hifen), pega os primeiros 10 chars
+    if len(s) >= 10 and s[4] == '-':
         return s[:10]
-    # Formatos alternativos
-    formatos = [
-        "%a, %d %b %Y %H:%M:%S %Z",
-        "%a, %d %b %Y %H:%M:%S",
-        "%Y-%m-%dT%H:%M:%S.%fZ",
-        "%Y-%m-%dT%H:%M:%SZ",
-        "%Y-%m-%dT%H:%M:%S",
-    ]
-    for fmt in formatos:
-        try:
-            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
-        except ValueError:
-            continue
-    if len(s) >= 10 and s[4] == "-":
-        return s[:10]
-    return s
+    # Fallback para formato GMT: "Mon, 20 Apr 2026 00:00:00 GMT"
+    from datetime import datetime
+    try:
+        return datetime.strptime(s, '%a, %d %b %Y %H:%M:%S %Z').strftime('%Y-%m-%d')
+    except Exception:
+        pass
+    try:
+        return datetime.strptime(s, '%a, %d %b %Y %H:%M:%S').strftime('%Y-%m-%d')
+    except Exception:
+        pass
+    return s[:10] if len(s) >= 10 else s
 
 # ============================================================
 #  MONTA FILTROS
