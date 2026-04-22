@@ -66,9 +66,21 @@ def normalizar_semana(semana_str):
     if not semana_str:
         return None
     s = str(semana_str).strip()
+    # Se começa com YYYY- (4 digitos + hifen), pega os primeiros 10 chars
     if len(s) >= 10 and s[4] == '-':
         return s[:10]
-    return s
+    # Fallback para formato GMT: "Mon, 20 Apr 2026 00:00:00 GMT"
+    from datetime import datetime
+    try:
+        return datetime.strptime(s, '%a, %d %b %Y %H:%M:%S %Z').strftime('%Y-%m-%d')
+    except Exception:
+        pass
+    try:
+        return datetime.strptime(s, '%a, %d %b %Y %H:%M:%S').strftime('%Y-%m-%d')
+    except Exception:
+        pass
+    return s[:10] if len(s) >= 10 else s
+
 # ============================================================
 #  MONTA FILTROS
 # ============================================================
@@ -858,6 +870,18 @@ def limpar_cache():
 @app.route('/ping')
 def ping():
     return jsonify({"status": "pong", "uptime": "ok"})
+
+
+@app.route('/api/debug/shelflife')
+def debug_shelflife():
+    try:
+        resultado = consultar(
+            "SELECT id, semana::text as semana_texto, unidade, validade::text as validade_texto, dias_vencimento FROM shelflife WHERE unidade = 'PR' ORDER BY id LIMIT 5"
+        )
+        return jsonify(resultado)
+    except Exception as e:
+        import traceback
+        return jsonify({'erro': str(e), 'traceback': traceback.format_exc()}), 500
 
 
 if __name__ == '__main__':
