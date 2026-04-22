@@ -5,13 +5,14 @@ import psycopg2.extras
 import os
 import time
 import json
+from datetime import date as _date, datetime
 
 app = Flask(__name__)
 CORS(app)
 
 # ============================================================
 #  CACHE SIMPLES EM MEMÓRIA
-#  Guarda resultados por 5 minutos para não bater no banco
+#  Guarda resultados por 8 horas para não bater no banco
 #  toda vez que alguém acessa a página
 # ============================================================
 _cache = {}
@@ -52,6 +53,37 @@ def consultar(sql, params=()):
     cursor.close()
     conn.close()
     return [dict(row) for row in resultado]
+
+# ============================================================
+#  NORMALIZA DATA — converte qualquer formato de semana
+#  para YYYY-MM-DD, que é o que o banco espera.
+#  Aceita:
+#    "Mon, 20 Apr 2026 00:00:00 GMT"  (JS Date.toString / toUTCString)
+#    "2026-04-20T00:00:00.000Z"       (JS toISOString)
+#    "2026-04-20"                     (já correto)
+# ============================================================
+def normalizar_semana(semana_str):
+    if not semana_str:
+        return None
+    s = semana_str.strip()
+    # Formatos a tentar, do mais específico ao mais genérico
+    formatos = [
+        '%a, %d %b %Y %H:%M:%S %Z',   # Mon, 20 Apr 2026 00:00:00 GMT
+        '%a, %d %b %Y %H:%M:%S',      # Mon, 20 Apr 2026 00:00:00
+        '%Y-%m-%dT%H:%M:%S.%fZ',      # 2026-04-20T00:00:00.000Z
+        '%Y-%m-%dT%H:%M:%SZ',         # 2026-04-20T00:00:00Z
+        '%Y-%m-%dT%H:%M:%S',          # 2026-04-20T00:00:00
+        '%Y-%m-%d',                   # 2026-04-20
+    ]
+    for fmt in formatos:
+        try:
+            return datetime.strptime(s, fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    # Última tentativa: pegar só os 10 primeiros caracteres se parecer uma data
+    if len(s) >= 10 and s[4] == '-':
+        return s[:10]
+    return s  # retorna original como fallback
 
 # ============================================================
 #  MONTA FILTROS
@@ -347,7 +379,6 @@ def resumo_carteira():
 
     # Total em carteira
     if vendedor:
-        # Busca cod_vendedor pelo nome do vendedor no faturamento
         cods = consultar("""
             SELECT DISTINCT cod_vendedor FROM faturamento
             WHERE vendedor = %s AND cod_vendedor IS NOT NULL AND cod_vendedor != ''
@@ -483,7 +514,6 @@ def vendedores_por_produto():
 # ============================================================
 #  SHELF LIFE
 # ============================================================
-from datetime import date as _date
 
 @app.route('/api/shelflife/upload', methods=['POST'])
 def shelflife_upload():
@@ -491,29 +521,40 @@ def shelflife_upload():
     semana   = data.get('semana')
     unidade  = data.get('unidade')
     produtos = data.get('produtos', [])
+
     if not produtos:
         return jsonify({'erro': 'Nenhum produto enviado'}), 400
 
+    # ✅ Normaliza a data da semana antes de gravar no banco
+    semana = normalizar_semana(semana)
+    if not semana:
+        return jsonify({'erro': 'Data da semana inválida'}), 400
+
     conn   = get_conn()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM shelflife WHERE semana = %s AND unidade = %s", [semana, unidade])
+    cursor.execute(
+        "DELETE FROM shelflife WHERE semana::date = %s::date AND unidade = %s",
+        [semana, unidade]
+    )
 
     hoje = _date.today()
     inseridos = 0
     for p in produtos:
-        validade = p.get('validade','')
+        validade = p.get('validade', '')
         try:
-            from datetime import datetime
             val_date = datetime.strptime(str(validade)[:10], '%Y-%m-%d').date()
             dias = (val_date - hoje).days
-        except:
+        except Exception:
             dias = 999
 
-        if dias <= 30:   status = 'CRITICO'
-        elif dias <= 60: status = 'ATENCAO'
-        else:            status = 'OK'
+        if dias <= 30:
+            status = 'CRITICO'
+        elif dias <= 60:
+            status = 'ATENCAO'
+        else:
+            status = 'OK'
 
-        nome  = str(p.get('produto',''))
+        nome  = str(p.get('produto', ''))
         is_sl = nome.upper().startswith('SL') or nome.upper().startswith('SL.')
 
         cursor.execute("""
@@ -526,34 +567,60 @@ def shelflife_upload():
             semana, unidade,
             p.get('cod_produto'), p.get('cod_sl'),
             nome, p.get('marca'),
-            p.get('quantidade'), validade[:10] if validade and len(str(validade))>=10 else None,
+            p.get('quantidade'),
+            validade[:10] if validade and len(str(validade)) >= 10 else None,
             dias, p.get('vence_em'), p.get('status_logistica'),
             status, is_sl
         ])
         inseridos += 1
 
-    conn.commit(); cursor.close(); conn.close()
+    conn.commit()
+    cursor.close()
+    conn.close()
     return jsonify({'inseridos': inseridos, 'semana': semana, 'unidade': unidade})
+
 
 @app.route('/api/shelflife/listar')
 def shelflife_listar():
     semana  = request.args.get('semana')
     unidade = request.args.get('unidade')
     status  = request.args.get('status')
-    where = []; params = []
+
+    # ✅ Normaliza a data recebida (ex: "Mon, 20 Apr 2026 00:00:00 GMT" → "2026-04-20")
+    semana = normalizar_semana(semana)
+
+    where = []
+    params = []
+
     if semana:
-        where.append("semana = %s"); params.append(semana)
+        # Usa cast para date em ambos os lados — evita erros de tipo no Postgres
+        where.append("semana::date = %s::date")
+        params.append(semana)
     else:
         where.append("semana = (SELECT MAX(semana) FROM shelflife)")
+
     if unidade:
-        where.append("unidade = %s"); params.append(unidade)
+        where.append("unidade = %s")
+        params.append(unidade)
+
     if status == 'SL':
         where.append("is_sl = TRUE")
     elif status:
-        where.append("status = %s AND is_sl = FALSE"); params.append(status)
+        where.append("status = %s AND is_sl = FALSE")
+        params.append(status)
+
     where_str = "WHERE " + " AND ".join(where) if where else ""
-    resultado = consultar(f"SELECT * FROM shelflife {where_str} ORDER BY dias_vencimento ASC", params)
-    return jsonify(resultado)
+
+    try:
+        resultado = consultar(
+            f"SELECT * FROM shelflife {where_str} ORDER BY dias_vencimento ASC",
+            params
+        )
+        return jsonify(resultado)
+    except Exception as e:
+        # Retorna JSON de erro em vez de HTML — facilita debug no frontend
+        return jsonify({'erro': str(e), 'semana': semana, 'unidade': unidade}), 500
+
 
 @app.route('/api/shelflife/semanas')
 def shelflife_semanas():
@@ -562,6 +629,7 @@ def shelflife_semanas():
         FROM shelflife GROUP BY semana, unidade ORDER BY semana DESC
     """)
     return jsonify(resultado)
+
 
 @app.route('/api/shelflife/atualizar', methods=['POST'])
 def shelflife_atualizar():
@@ -606,27 +674,27 @@ def shelflife_atualizar():
         id_prod
     ])
 
-    # Gera log de alteracoes comparando anterior vs novo
+    # Gera log de alterações comparando anterior vs novo
+    alteracoes = []
     if row:
         campos = [
-            ('quantidade_atual',    row[5],  data.get('quantidade_atual'),    'Qtde Atual'),
-            ('venda_3meses',        row[6],  data.get('venda_3meses'),        'Venda 3 Meses'),
-            ('venda_mes',           row[7],  data.get('venda_mes'),           'Venda Mensal'),
+            ('quantidade_atual',    row[5],  data.get('quantidade_atual'),                  'Qtde Atual'),
+            ('venda_3meses',        row[6],  data.get('venda_3meses'),                      'Venda 3 Meses'),
+            ('venda_mes',           row[7],  data.get('venda_mes'),                         'Venda Mensal'),
             ('data_inconsistencia', str(row[8]) if row[8] else '', data.get('data_inconsistencia') or '', 'Data Inconsistencia'),
-            ('obs_logistica',       row[9],  data.get('obs_logistica'),       'Obs. Logistica'),
-            ('obs_gerais',          row[10], data.get('obs_gerais'),          'Obs. Gerais'),
-            ('acao',                row[11], data.get('acao'),                'Acao'),
-            ('vendedor',            row[12], data.get('vendedor'),            'Vendedor'),
+            ('obs_logistica',       row[9],  data.get('obs_logistica'),                     'Obs. Logistica'),
+            ('obs_gerais',          row[10], data.get('obs_gerais'),                        'Obs. Gerais'),
+            ('acao',                row[11], data.get('acao'),                              'Acao'),
+            ('vendedor',            row[12], data.get('vendedor'),                          'Vendedor'),
         ]
 
-        alteracoes = []
         for campo, antes, depois, label in campos:
             antes_str  = str(antes or '').strip()
             depois_str = str(depois or '').strip()
             if antes_str != depois_str:
                 alteracoes.append(f"{label}: [{antes_str or '—'}] → [{depois_str or '—'}]")
 
-        # Registra no historico se houve qualquer alteracao
+        # Registra no histórico se houve qualquer alteração
         if alteracoes:
             cursor.execute("""
                 INSERT INTO shelflife_historico (
@@ -643,14 +711,16 @@ def shelflife_atualizar():
                 data.get('venda_mes'),
                 data.get('acao'),
                 data.get('vendedor'),
-                '|'.join(alteracoes),  # Salva as alteracoes em obs_logistica
+                '|'.join(alteracoes),
                 data.get('obs_gerais'),
                 data.get('data_inconsistencia') or None,
                 data.get('usuario', 'admin')
             ])
 
-    conn.commit(); cursor.close(); conn.close()
-    return jsonify({'ok': True, 'alteracoes': alteracoes if row else []})
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({'ok': True, 'alteracoes': alteracoes})
 
 
 @app.route('/api/shelflife/excluir', methods=['POST'])
@@ -658,15 +728,28 @@ def shelflife_excluir():
     data    = request.get_json()
     semana  = data.get('semana')
     unidade = data.get('unidade')
-    conn    = get_conn()
-    cursor  = conn.cursor()
+
+    # ✅ Normaliza a data antes de usar no DELETE
+    semana = normalizar_semana(semana)
+
+    conn   = get_conn()
+    cursor = conn.cursor()
     if unidade:
-        cursor.execute("DELETE FROM shelflife WHERE semana = %s AND unidade = %s", [semana, unidade])
+        cursor.execute(
+            "DELETE FROM shelflife WHERE semana::date = %s::date AND unidade = %s",
+            [semana, unidade]
+        )
     else:
-        cursor.execute("DELETE FROM shelflife WHERE semana = %s", [semana])
+        cursor.execute(
+            "DELETE FROM shelflife WHERE semana::date = %s::date",
+            [semana]
+        )
     deleted = cursor.rowcount
-    conn.commit(); cursor.close(); conn.close()
+    conn.commit()
+    cursor.close()
+    conn.close()
     return jsonify({'excluidos': deleted})
+
 
 @app.route('/api/pivot-clientes')
 def pivot_clientes_novo():
@@ -760,21 +843,26 @@ def pivot_clientes_novo():
     conn.close()
     return jsonify(resultado)
 
+
 @app.route('/api/shelflife/historico')
 def shelflife_historico():
     shelflife_id = request.args.get('shelflife_id')
     cod_produto  = request.args.get('cod_produto')
-    where = []; params = []
+    where = []
+    params = []
     if shelflife_id:
-        where.append("shelflife_id = %s"); params.append(shelflife_id)
+        where.append("shelflife_id = %s")
+        params.append(shelflife_id)
     if cod_produto:
-        where.append("cod_produto = %s"); params.append(cod_produto)
+        where.append("cod_produto = %s")
+        params.append(cod_produto)
     where_str = "WHERE " + " AND ".join(where) if where else ""
     resultado = consultar(f"""
         SELECT * FROM shelflife_historico {where_str}
         ORDER BY created_at DESC LIMIT 50
     """, params)
     return jsonify(resultado)
+
 
 # Limpa cache (útil após atualizar dados)
 @app.route('/api/cache/clear', methods=['POST'])
@@ -786,6 +874,7 @@ def limpar_cache():
 @app.route('/ping')
 def ping():
     return jsonify({"status": "pong", "uptime": "ok"})
+
 
 if __name__ == '__main__':
     print("🚀 API Horus iniciando...")
