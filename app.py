@@ -181,8 +181,8 @@ def kpis():
     resultado = consultar(f"""
         SELECT
             ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Venda'       THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS faturamento,
-                                    ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'devolucao'   THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS devolucoes,
-                                                ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'bonificacao' THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS bonificacoes,
+                                    ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Devolucao'   THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS devolucoes,
+                                                ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Bonificacao' THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS bonificacoes,
             ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Venda' THEN valor_nf ELSE 0 END) /
                   NULLIF(COUNT(CASE WHEN tipo_operacao = 'Venda' THEN 1 END), 0) AS NUMERIC), 2) AS ticket_medio,
             COUNT(DISTINCT cliente)                              AS total_clientes,
@@ -203,8 +203,8 @@ def faturamento_mensal():
     resultado = consultar(f"""
         SELECT ano, mes,
             ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Venda'       THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS faturamento,
-                                    ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'devolucao'   THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS devolucoes,
-                        ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'bonificacao' THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS bonificacoes
+                                    ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Devolucao'   THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS devolucoes,
+                        ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Bonificacao' THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS bonificacoes
         FROM faturamento {where}
         {'AND' if where else 'WHERE'} mes > 0
         GROUP BY ano, mes ORDER BY ano, mes
@@ -282,8 +282,8 @@ def faturamento_por_unidade():
     resultado = consultar(f"""
         SELECT unidade,
             ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Venda'       THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS faturamento,
-                        ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'devolucao'   THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS devolucoes,
-                                    ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'bonificacao' THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS bonificacoes,
+                        ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Devolucao'   THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS devolucoes,
+                                    ROUND(CAST(SUM(CASE WHEN tipo_operacao = 'Bonificacao' THEN valor_nf ELSE 0 END) AS NUMERIC), 2) AS bonificacoes,
             COUNT(DISTINCT cliente) AS clientes
         FROM faturamento {where} {and_or} unidade IS NOT NULL
         GROUP BY unidade ORDER BY faturamento DESC
