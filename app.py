@@ -66,21 +66,9 @@ def normalizar_semana(semana_str):
     if not semana_str:
         return None
     s = str(semana_str).strip()
-    # Se começa com YYYY- (4 digitos + hifen), pega os primeiros 10 chars
     if len(s) >= 10 and s[4] == '-':
         return s[:10]
-    # Fallback para formato GMT: "Mon, 20 Apr 2026 00:00:00 GMT"
-    from datetime import datetime
-    try:
-        return datetime.strptime(s, '%a, %d %b %Y %H:%M:%S %Z').strftime('%Y-%m-%d')
-    except Exception:
-        pass
-    try:
-        return datetime.strptime(s, '%a, %d %b %Y %H:%M:%S').strftime('%Y-%m-%d')
-    except Exception:
-        pass
-    return s[:10] if len(s) >= 10 else s
-
+    return s
 # ============================================================
 #  MONTA FILTROS
 # ============================================================
