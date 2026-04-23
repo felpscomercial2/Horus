@@ -589,6 +589,7 @@ def shelflife_atualizar():
     cursor.execute("""
         UPDATE shelflife SET
             cod_sl              = COALESCE(%s, cod_sl),
+            produto             = COALESCE(%s, produto),
             quantidade_atual    = %s,
             venda_3meses        = %s,
             venda_mes           = %s,
@@ -602,6 +603,7 @@ def shelflife_atualizar():
         WHERE id = %s
     """, [
         data.get('cod_sl'),
+        data.get('produto') or None,
         data.get('quantidade_atual'),
         data.get('venda_3meses'),
         data.get('venda_mes'),
