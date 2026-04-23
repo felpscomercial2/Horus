@@ -734,7 +734,7 @@ def pivot_clientes_novo():
         ano_filter = ''
         ano_params = []
         if anos:
-            ano_ph = ','.join([%'] * len(anos))
+            ano_ph = ','.join(['%s'] * len(anos))
             ano_filter = f'AND f.ano IN ({ano_ph})'
             ano_params = [int(a) for a in anos]
 
