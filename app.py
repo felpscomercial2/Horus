@@ -547,7 +547,8 @@ def shelflife_listar():
     status  = request.args.get('status')
     where = []; params = []
     if semana:
-        where.append("semana = %s"); params.append(semana)
+        # Normaliza: aceita tanto "2026-04-20" quanto "Mon, 20 Apr 2026 00:00:00 GMT"
+        where.append("semana::date = %s::date"); params.append(semana[:10] if len(str(semana)) >= 10 else semana)
     else:
         where.append("semana = (SELECT MAX(semana) FROM shelflife)")
     if unidade:
@@ -563,7 +564,7 @@ def shelflife_listar():
 @app.route('/api/shelflife/semanas')
 def shelflife_semanas():
     resultado = consultar("""
-        SELECT DISTINCT semana, unidade, COUNT(*) as total
+        SELECT DISTINCT TO_CHAR(semana, 'YYYY-MM-DD') as semana, unidade, COUNT(*) as total
         FROM shelflife GROUP BY semana, unidade ORDER BY semana DESC
     """)
     return jsonify(resultado)
