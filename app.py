@@ -723,12 +723,17 @@ def pivot_clientes_novo():
 
     else:
         # SEM produto — todos da carteira + compras via LEFT JOIN
+        # Filtra por NOME do vendedor via o JOIN com faturamento (carteira tem cod_vendedor, nao nome)
         vend_filter = ''
         params = []
 
         if vendedores:
             vend_ph = ','.join(['%s'] * len(vendedores))
-            vend_filter = f'WHERE c.cod_vendedor IN ({vend_ph})'
+            # Busca os cod_vendedor correspondentes aos nomes selecionados
+            vend_filter = f'''WHERE c.cod_vendedor IN (
+                SELECT DISTINCT cod_vendedor FROM faturamento
+                WHERE vendedor IN ({vend_ph}) AND cod_vendedor IS NOT NULL AND cod_vendedor != ''
+            )'''
             params += vendedores
 
         ano_filter = ''
