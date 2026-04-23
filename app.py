@@ -726,47 +726,53 @@ def pivot_clientes_novo():
         """, params)
 
     else:
-        # SEM produto — todos da carteira + compras via LEFT JOIN
-        # Filtra por NOME do vendedor via subquery (carteira tem cod_vendedor, nao nome)
-        # O ano_filter fica no LEFT JOIN para não excluir clientes sem compras no período
-        vend_where = ''
+        # SEM produto — TODOS os clientes da carteira sempre aparecem
+        # LEFT JOIN com subquery de faturamento já filtrada por período
+        # Clientes sem compras no período aparecem com ano/mes NULL
         vend_params = []
+        vend_where = '1=1'
 
         if vendedores:
             vend_ph = ','.join(['%s'] * len(vendedores))
-            vend_where = f'''WHERE c.cod_vendedor IN (
+            vend_where = f"""c.cod_vendedor IN (
                 SELECT DISTINCT cod_vendedor FROM faturamento
                 WHERE vendedor IN ({vend_ph}) AND cod_vendedor IS NOT NULL AND cod_vendedor != ''
-            )'''
+            )"""
             vend_params += vendedores
 
-        ano_filter = ''
-        ano_params = []
+        periodo_filter = ''
+        periodo_params = []
         if anos:
             ano_ph = ','.join(['%s'] * len(anos))
-            ano_filter = f'AND f.ano IN ({ano_ph})'
-            ano_params = [int(a) for a in anos]
+            periodo_filter = f'AND fat.ano IN ({ano_ph})'
+            periodo_params = [int(a) for a in anos]
 
         cursor.execute(f"""
             SELECT
                 c.cliente, c.cod_cliente,
                 v.vendedor,
-                f.ano, f.mes,
-                ROUND(COALESCE(SUM(CASE WHEN f.tipo_operacao='Venda' THEN f.valor_nf ELSE 0 END),0)::NUMERIC,2) AS faturamento,
-                ROUND(COALESCE(SUM(CASE WHEN f.tipo_operacao='Devolucao' THEN f.valor_nf ELSE 0 END),0)::NUMERIC,2) AS devolucoes
+                fat_grp.ano, fat_grp.mes,
+                COALESCE(fat_grp.faturamento, 0) AS faturamento,
+                COALESCE(fat_grp.devolucoes, 0) AS devolucoes
             FROM carteira c
             LEFT JOIN (
                 SELECT DISTINCT cod_vendedor, vendedor FROM faturamento
             ) v ON v.cod_vendedor = c.cod_vendedor
-            LEFT JOIN faturamento f
-                ON f.cod_cliente = c.cod_cliente
-                AND f.tipo_operacao IN ('Venda','Devolucao')
-                AND f.mes > 0
-                {ano_filter}
-            {vend_where}
-            GROUP BY c.cliente, c.cod_cliente, v.vendedor, f.ano, f.mes
-            ORDER BY c.cliente, f.ano, f.mes
-        """, ano_params + vend_params)
+            LEFT JOIN (
+                SELECT
+                    cod_cliente, ano, mes,
+                    ROUND(SUM(CASE WHEN tipo_operacao='Venda' THEN valor_nf ELSE 0 END)::NUMERIC,2) AS faturamento,
+                    ROUND(SUM(CASE WHEN tipo_operacao='Devolucao' THEN valor_nf ELSE 0 END)::NUMERIC,2) AS devolucoes
+                FROM faturamento fat
+                WHERE fat.tipo_operacao IN ('Venda','Devolucao')
+                AND fat.mes > 0
+                {periodo_filter}
+                GROUP BY cod_cliente, ano, mes
+            ) fat_grp ON fat_grp.cod_cliente = c.cod_cliente
+            WHERE {vend_where}
+            ORDER BY c.cliente, fat_grp.ano, fat_grp.mes
+        """, periodo_params + vend_params)
+
 
     rows = cursor.fetchall()
     cols = [desc[0] for desc in cursor.description]
