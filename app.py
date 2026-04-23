@@ -727,18 +727,18 @@ def pivot_clientes_novo():
 
     else:
         # SEM produto — todos da carteira + compras via LEFT JOIN
-        # Filtra por NOME do vendedor via o JOIN com faturamento (carteira tem cod_vendedor, nao nome)
-        vend_filter = ''
-        params = []
+        # Filtra por NOME do vendedor via subquery (carteira tem cod_vendedor, nao nome)
+        # O ano_filter fica no LEFT JOIN para não excluir clientes sem compras no período
+        vend_where = ''
+        vend_params = []
 
         if vendedores:
             vend_ph = ','.join(['%s'] * len(vendedores))
-            # Busca os cod_vendedor correspondentes aos nomes selecionados
-            vend_filter = f'''WHERE c.cod_vendedor IN (
+            vend_where = f'''WHERE c.cod_vendedor IN (
                 SELECT DISTINCT cod_vendedor FROM faturamento
                 WHERE vendedor IN ({vend_ph}) AND cod_vendedor IS NOT NULL AND cod_vendedor != ''
             )'''
-            params += vendedores
+            vend_params += vendedores
 
         ano_filter = ''
         ano_params = []
@@ -763,10 +763,10 @@ def pivot_clientes_novo():
                 AND f.tipo_operacao IN ('Venda','Devolucao')
                 AND f.mes > 0
                 {ano_filter}
-            {vend_filter}
+            {vend_where}
             GROUP BY c.cliente, c.cod_cliente, v.vendedor, f.ano, f.mes
             ORDER BY c.cliente, f.ano, f.mes
-        """, params + ano_params)
+        """, ano_params + vend_params)
 
     rows = cursor.fetchall()
     cols = [desc[0] for desc in cursor.description]
